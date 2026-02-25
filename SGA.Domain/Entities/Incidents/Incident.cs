@@ -2,6 +2,7 @@
 using SGA.Domain.Enums.Incidents;
 using SGA.Domain.Entities.Trips;
 using SGA.Domain.Entities.Users;
+using SGA.Domain.Exceptions.Incidents;
 using System;
 
 namespace SGA.Domain.Entities.Incidents

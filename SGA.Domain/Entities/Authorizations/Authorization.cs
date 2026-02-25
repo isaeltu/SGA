@@ -3,6 +3,7 @@ using SGA.Domain.Enums.Authorizations;
 using SGA.Domain.ValueObjects.Authorizations;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Entities.Trips;
+using SGA.Domain.Exceptions.Authorizations;
 using System;
 using System.Collections.Generic;
 

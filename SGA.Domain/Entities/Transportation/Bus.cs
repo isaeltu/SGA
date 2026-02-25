@@ -1,6 +1,7 @@
 ﻿using SGA.Domain.Base;
 using SGA.Domain.Enums.Transportation;
 using SGA.Domain.ValueObjects.Transportation;
+using SGA.Domain.Exceptions.Transportation;
 using SGA.Domain.Entities.Trips;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace SGA.Domain.Entities.Transportation
         public string Model { get; protected set; } = string.Empty;
         public int Year { get; protected set; }
         public int Capacity { get; protected set; }
-        public byte AvailableSeats { get; protected set; }
+        public int AvailableSeats { get; protected set; }
         
         public BusStatus Status { get; protected set; }
         

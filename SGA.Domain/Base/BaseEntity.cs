@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using SGA.Domain.DomainEvents;
 
 namespace SGA.Domain.Base
 {
@@ -13,6 +15,9 @@ namespace SGA.Domain.Base
         public bool IsDeleted { get; protected set; }
         public DateTime? DeletedAt { get; protected set; }
         public string? DeletedBy { get; protected set; }
+
+        private readonly List<IDomainEvent> _domainEvents = new();
+        public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
         
         public void SetCreationInfo(string createdBy)
         {
@@ -31,6 +36,16 @@ namespace SGA.Domain.Base
             IsDeleted = true;
             DeletedAt = DateTime.UtcNow;
             DeletedBy = deletedBy;
+        }
+
+        protected void AddDomainEvent(IDomainEvent domainEvent)
+        {
+            _domainEvents.Add(domainEvent);
+        }
+
+        public void ClearDomainEvents()
+        {
+            _domainEvents.Clear();
         }
     }
 }

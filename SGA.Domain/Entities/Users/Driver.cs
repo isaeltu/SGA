@@ -1,5 +1,6 @@
 ﻿using SGA.Domain.Enums.Users;
 using SGA.Domain.Entities.Trips;
+using SGA.Domain.Exceptions.Users;
 using System;
 using System.Collections.Generic;
 

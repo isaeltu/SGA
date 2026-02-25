@@ -3,6 +3,8 @@ using SGA.Domain.Enums.Trips;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Entities.Transportation;
 using SGA.Domain.Entities.Incidents;
+using SGA.Domain.DomainEvents.Trips;
+using SGA.Domain.Exceptions.Trips;
 using System;
 using System.Collections.Generic;
 
@@ -59,6 +61,7 @@ namespace SGA.Domain.Entities.Trips
             Status = TripStatus.InProgress;
             ActualDepartureTime = DateTime.UtcNow;
             SetModificationInfo(modifiedBy);
+            AddDomainEvent(new TripStartedDomainEvent(Id));
         }
         
         public void Complete(string modifiedBy)
@@ -69,6 +72,7 @@ namespace SGA.Domain.Entities.Trips
             Status = TripStatus.Completed;
             ActualArrivalTime = DateTime.UtcNow;
             SetModificationInfo(modifiedBy);
+            AddDomainEvent(new TripCompletedDomainEvent(Id));
         }
         
         public void Cancel(string modifiedBy)
@@ -78,6 +82,7 @@ namespace SGA.Domain.Entities.Trips
             
             Status = TripStatus.Cancelled;
             SetModificationInfo(modifiedBy);
+            AddDomainEvent(new TripCancelledDomainEvent(Id));
         }
     }
 }

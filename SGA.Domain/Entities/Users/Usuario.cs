@@ -4,6 +4,7 @@ using SGA.Domain.ValueObjects.Users;
 using System;
 using System.Collections.Generic;
 using SGA.Domain.Entities.Authorizations;
+using SGA.Domain.Exceptions.Users;
 namespace SGA.Domain.Entities.Users
 {
     public abstract class Usuario : BaseEntity<int>
@@ -22,7 +23,7 @@ namespace SGA.Domain.Entities.Users
         public UserStatus Status { get; protected set; }
         public bool IsActivo { get; protected set; }
         
-        public Rol Rol { get; protected set; } = null!;
+        public Rol Rol { get; protected set; }
         public ICollection<Authorization> Authorizations { get; protected set; } = new List<Authorization>();
         
         protected Usuario() { }

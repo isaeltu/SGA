@@ -2,6 +2,7 @@
 using SGA.Domain.Enums.Trips;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Entities.Authorizations;
+using SGA.Domain.DomainEvents.Trips;
 using System;
 
 namespace SGA.Domain.Entities.Trips
@@ -39,6 +40,7 @@ namespace SGA.Domain.Entities.Trips
             Status = ReservationStatus.Confirmed;
             
             SetCreationInfo(createdBy);
+            AddDomainEvent(new ReservationConfirmedDomainEvent(Id, TripId, StudentId));
         }
         
         private string GenerateQrCode()
@@ -53,6 +55,7 @@ namespace SGA.Domain.Entities.Trips
             
             Status = ReservationStatus.Boarded;
             SetModificationInfo(modifiedBy);
+            AddDomainEvent(new ReservationBoardedDomainEvent(Id, TripId, StudentId));
         }
         
         public void Cancel(string modifiedBy)
@@ -62,6 +65,7 @@ namespace SGA.Domain.Entities.Trips
             
             Status = ReservationStatus.Cancelled;
             SetModificationInfo(modifiedBy);
+            AddDomainEvent(new ReservationCancelledDomainEvent(Id, TripId, StudentId));
         }
     }
 }
