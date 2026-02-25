@@ -10,5 +10,6 @@
   <Folder Name="/src/Presentation/">
     <Project Path="SGA.Api/SGA.Api.csproj" />
   </Folder>
-  <Project Path="ConsoleApp1/ConsoleApp1.csproj" Id="c63c8359-d464-4abf-bade-ad20419f6938" />
+  <Project Path="SGA.Web/SGA.Web.csproj" Id="3ba78410-dbf1-47d4-b3c1-6627d9a937a3" />
+  <Project Path="SGA.WPF/SGA.WPF.csproj" Id="eb354073-d727-405e-8ecf-d8fad612f924" />
 </Solution>
