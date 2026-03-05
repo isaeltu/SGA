@@ -9,14 +9,14 @@ namespace SGA.Domain.Entities.Transportation
 {
     public class RouteStop : BaseEntity<int>
     {
-        public int RouteId { get; protected set; }
-        public int StopId { get; protected set; }
+        public int RouteId { get; set; }
+        public int StopId { get; set; }
         
-        public int StopOrder { get; protected set; }
-        public int EstimatedArrivalMinutes { get; protected set; }
+        public int StopOrder { get;  set; }
+        public int EstimatedArrivalMinutes { get; set; }
         
-        public Route Route { get; protected set; } = null!;
-        public Stop Stop { get; protected set; } = null!;
+        public Route Route { get; set; } = null!;
+        public Stop Stop { get; set; } = null!;
         
         protected RouteStop() { }
         

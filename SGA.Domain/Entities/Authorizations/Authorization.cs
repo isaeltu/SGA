@@ -11,25 +11,25 @@ namespace SGA.Domain.Entities.Authorizations
 {
     public class Authorization : BaseEntity<int>
     {
-        public int StudentId { get; protected set; }
         
-        public Money Balance { get; protected set; } = null!;
-        public DateRange? ValidityPeriod { get; protected set; }
+        public int StudentId { get;  set; }
+        public Money Balance { get;  set; } = null!;
+        public DateRange? ValidityPeriod { get;  set;}      
+        public AuthorizationType Type { get;  set; }
+        public AuthorizationStatus Status { get;  set; }
         
-        public AuthorizationType Type { get; protected set; }
-        public AuthorizationStatus Status { get; protected set; }
-        
-        public Student Student { get; protected set; } = null!;
-        public ICollection<Transaction> Transactions { get; protected set; } = new List<Transaction>();
-        public ICollection<Reservation> Reservations { get; protected set; } = new List<Reservation>();
-        
+        public Student Student { get; set; } = null!;
+        public ICollection<Transaction> Transactions { get;  set; } = new List<Transaction>();
+        public ICollection<Reservation> Reservations { get;  set; } = new List<Reservation>();
+
         protected Authorization() { }
-        
         public Authorization(
+            int id,
             int studentId,
             decimal initialBalance,
-            string createdBy)
+            string createdBy) 
         {
+            this.Id = id;
             StudentId = studentId;
             Type = AuthorizationType.Balance;
             Balance = new Money(initialBalance);

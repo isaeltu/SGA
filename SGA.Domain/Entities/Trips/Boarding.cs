@@ -20,7 +20,10 @@ namespace SGA.Domain.Entities.Trips
         public Trip Trip { get; protected set; } = null!;
         public Student Student { get; protected set; } = null!;
         
-        protected Boarding() { }
+        protected Boarding()
+        {
+
+        }
         
         public Boarding(
             int reservationId,

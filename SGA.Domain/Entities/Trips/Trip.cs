@@ -4,32 +4,27 @@ using SGA.Domain.Entities.Users;
 using SGA.Domain.Entities.Transportation;
 using SGA.Domain.Entities.Incidents;
 using SGA.Domain.DomainEvents.Trips;
-using SGA.Domain.Exceptions.Trips;
-using System;
-using System.Collections.Generic;
+using SGA.Domain.Common;
 
 namespace SGA.Domain.Entities.Trips
 {
     public class Trip : BaseEntity<int>
     {
-        public int RouteId { get; protected set; }
-        public int DriverId { get; protected set; }
-        public int BusId { get; protected set; }
+        public int RouteId { get; set; }
+        public int DriverId { get;  set; }
+        public int BusId { get;  set; }
         
-        public DateTime ScheduledDepartureTime { get; protected set; }
-        public DateTime? ActualDepartureTime { get; protected set; }
-        public DateTime ScheduledArrivalTime { get; protected set; }
-        public DateTime? ActualArrivalTime { get; protected set; }
-        public int AvailableSeats { get; protected set; }
+        public DateTime ScheduledDepartureTime { get; set; }
+        public DateTime? ActualDepartureTime { get; set; }
+        public DateTime ScheduledArrivalTime { get; set; }
+        public DateTime? ActualArrivalTime { get;  set; }
+        public int AvailableSeats { get;  set; }
         
-        public TripStatus Status { get; protected set; }
+        public TripStatus Status { get;  set; }
         
-        public Route Route { get; protected set; } = null!;
-        public Driver Driver { get; protected set; } = null!;
-        public Bus Bus { get; protected set; } = null!;
-        public ICollection<Reservation> Reservations { get; protected set; } = new List<Reservation>();
-        public ICollection<Incident> Incidents { get; protected set; } = new List<Incident>();
-        public ICollection<TripStop> TripStops { get; protected set; } = new List<TripStop>();
+        public Route Route { get;  set; } = null!;
+        public Driver Driver { get; set; } = null!;
+        public Bus Bus { get; set; } = null!;
         
         protected Trip() { }
         
@@ -53,36 +48,41 @@ namespace SGA.Domain.Entities.Trips
             SetCreationInfo(createdBy);
         }
         
-        public void Start(string modifiedBy)
+        public Result<TripStatus> Start(string modifiedBy)
         {
             if (Status != TripStatus.Scheduled)
-                throw new TripNotAvailableException("Only scheduled trips can be started");
+                return Result<TripStatus>.Failure(DomainErrors.Trip.NotScheduled);
             
             Status = TripStatus.InProgress;
             ActualDepartureTime = DateTime.UtcNow;
             SetModificationInfo(modifiedBy);
             AddDomainEvent(new TripStartedDomainEvent(Id));
+            return Result<Trip>.Success(Status);
         }
         
-        public void Complete(string modifiedBy)
+        public Result<TripStatus> Complete(string modifiedBy)
         {
             if (Status != TripStatus.InProgress)
-                throw new TripNotAvailableException("Only in-progress trips can be completed");
+                return Result<TripStatus>.Failure(DomainErrors.Trip.NotInProgress);
             
             Status = TripStatus.Completed;
             ActualArrivalTime = DateTime.UtcNow;
             SetModificationInfo(modifiedBy);
             AddDomainEvent(new TripCompletedDomainEvent(Id));
+            return Result<Trip>.Success(Status);
         }
         
-        public void Cancel(string modifiedBy)
+        public Result<TripStatus> Cancel(string modifiedBy)
         {
             if (Status == TripStatus.Completed)
-                throw new TripNotAvailableException("Cannot cancel completed trips");
+                return Result<TripStatus>.Failure(DomainErrors.Trip.AlreadyCompleted);
             
             Status = TripStatus.Cancelled;
             SetModificationInfo(modifiedBy);
             AddDomainEvent(new TripCancelledDomainEvent(Id));
+            return Result<TripStatus>.Success(Status);
+
+            
         }
     }
 }

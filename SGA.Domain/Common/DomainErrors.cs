@@ -20,6 +20,7 @@ namespace SGA.Domain.Common
         {
             public static readonly Error InvalidType = new("Authorization.InvalidType", "Authorization type does not allow this operation.");
             public static readonly Error InsufficientBalance = new("Authorization.InsufficientBalance", "Authorization has insufficient balance.");
+
         }
 
         public static class Reservation
@@ -27,10 +28,13 @@ namespace SGA.Domain.Common
             public static readonly Error InvalidState = new("Reservation.InvalidState", "Reservation state transition is invalid.");
         }
 
-        public static class User
+        public static class Person
         {
-            public static readonly Error InvalidState = new("User.InvalidState", "User state transition is invalid.");
-            public static readonly Error LicenseExpired = new("User.LicenseExpired", "Driver license is expired.");
+            public static readonly Error Unavailable = new("Driver.Unavailable", "Driver is already unavailable");
+            public static readonly Error Available = new("Driver.Unavailable", "Driver is already Available");
+            public static readonly Error InvalidState = new("Driver.InvalidState", "User state transition is invalid.");
+            public static readonly Error LicenseExpired = new("Driver.LicenseExpired", "Driver license is expired.");
+            public static readonly Error PeriodIsNull = new("Student.PeriodNull", "Driver license is expired.");
         }
     }
 }

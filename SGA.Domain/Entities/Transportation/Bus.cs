@@ -10,16 +10,13 @@ namespace SGA.Domain.Entities.Transportation
 {
     public class Bus : BaseEntity<int>
     {
-        public LicensePlate LicensePlate { get; protected set; } = null!;
+        public LicensePlate LicensePlate { get; set; } = null!;
+        public string Model { get; set; } = string.Empty;
+        public int Year { get; set; }
+        public int Capacity { get; set; }
+        public int AvailableSeats { get; set; }
         
-        public string Model { get; protected set; } = string.Empty;
-        public int Year { get; protected set; }
-        public int Capacity { get; protected set; }
-        public int AvailableSeats { get; protected set; }
-        
-        public BusStatus Status { get; protected set; }
-        
-        public ICollection<Trip> Trips { get; protected set; } = new List<Trip>();
+        public BusStatus Status { get; set; }
         
         protected Bus() { }
         

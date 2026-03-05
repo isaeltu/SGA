@@ -4,6 +4,7 @@ namespace SGA.Domain.Common
 {
     public class Result
     {
+
         protected internal Result(bool isSuccess, Error error)
         {
             if (isSuccess && error != Error.None)
@@ -14,6 +15,7 @@ namespace SGA.Domain.Common
 
             IsSuccess = isSuccess;
             Error = error;
+
         }
 
         public bool IsSuccess { get; }
@@ -32,7 +34,7 @@ namespace SGA.Domain.Common
         private Result(TValue? value, bool isSuccess, Error error)
             : base(isSuccess, error)
         {
-            Value = value;
+            Value = value!;
         }
 
         public TValue Value { get; } = default!;

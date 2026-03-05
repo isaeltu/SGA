@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Thinktecture;
-using Thinktecture.Collections;
-using Thinktecture.IdentityModel.Tokens;
+﻿using System.Text.RegularExpressions;
 namespace SGA.Domain.ValueObjects.Users
 
 {
@@ -14,7 +6,7 @@ namespace SGA.Domain.ValueObjects.Users
     {
         
 
-        public string Value { get; private set; }
+        public string Value {get; private set; }
 
 
         private Email()

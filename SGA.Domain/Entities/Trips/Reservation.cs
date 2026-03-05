@@ -9,43 +9,44 @@ namespace SGA.Domain.Entities.Trips
 {
     public class Reservation : BaseEntity<int>
     {
-        public int TripId { get; protected set; }
-        public int StudentId { get; protected set; }
-        public int AuthorizationId { get; protected set; }
+        public int TripId { get;  set; }
+        public int PersonId { get; set;}
+        public int AuthorizationId { get;  set; }
         
-        public int QueueNumber { get; protected set; }
-        public string QrCode { get; protected set; } = string.Empty;
+        public int QueueNumber { get;  set; }
+        public string QrCode { get; set; } = string.Empty;
         
-        public ReservationStatus Status { get; protected set; }
+        public ReservationStatus Status { get;  set; }
         
-        public Trip Trip { get; protected set; } = null!;
-        public Student Student { get; protected set; } = null!;
-        public Authorization Authorization { get; protected set; } = null!;
-        public Boarding? Boarding { get; protected set; }
-        
+        public Trip Trip { get;  set; } = null!;
+        public Person Student { get;  set; } = null!;
+        public Authorization Authorization { get; set; } = null!;
+        public Boarding? Boarding { get;  set; }
+    
         protected Reservation() { }
         
         public Reservation(
             int tripId,
-            int studentId,
+            int personId,
             int authorizationId,
             int queueNumber,
             string createdBy)
         {
             TripId = tripId;
-            StudentId = studentId;
+            PersonId = personId;
             AuthorizationId = authorizationId;
             QueueNumber = queueNumber;
             QrCode = GenerateQrCode();
             Status = ReservationStatus.Confirmed;
             
             SetCreationInfo(createdBy);
-            AddDomainEvent(new ReservationConfirmedDomainEvent(Id, TripId, StudentId));
+            AddDomainEvent(new ReservationConfirmedDomainEvent(Id, TripId, PersonId));
         }
         
         private string GenerateQrCode()
         {
-            return $"RES-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
+            QrCode = $"RES-{Guid.NewGuid().ToString().Substring(0,8).ToUpper()}";
+            return QrCode ;
         }
         
         public void MarkAsBoarded(string modifiedBy)
@@ -55,7 +56,7 @@ namespace SGA.Domain.Entities.Trips
             
             Status = ReservationStatus.Boarded;
             SetModificationInfo(modifiedBy);
-            AddDomainEvent(new ReservationBoardedDomainEvent(Id, TripId, StudentId));
+            
         }
         
         public void Cancel(string modifiedBy)
@@ -65,7 +66,7 @@ namespace SGA.Domain.Entities.Trips
             
             Status = ReservationStatus.Cancelled;
             SetModificationInfo(modifiedBy);
-            AddDomainEvent(new ReservationCancelledDomainEvent(Id, TripId, StudentId));
+            AddDomainEvent(new ReservationCancelledDomainEvent(Id, TripId, PersonId));
         }
     }
 }

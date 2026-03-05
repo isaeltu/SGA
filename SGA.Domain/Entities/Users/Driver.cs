@@ -3,56 +3,57 @@ using SGA.Domain.Entities.Trips;
 using SGA.Domain.Exceptions.Users;
 using System;
 using System.Collections.Generic;
+using SGA.Domain.Base;
+using SGA.Domain.Common;
+using System.Numerics;
 
 namespace SGA.Domain.Entities.Users
 {
-    public class Driver : Usuario
+    public class Driver : BaseEntity<int>
     {
-        public string DriverLicence { get; protected set; } = string.Empty;
-        public DateTime LicenceExpirationDate { get; protected set; }
-        public bool IsAvailable { get; protected set; }
+        public int PersonId { get; set; }
+        public string DriverLicence { get; set; }
+        public DateTimeOffset LicenceExpirationDate { get; set; }
+        public bool IsAvailable { get; set; }
         
         public ICollection<Trip> Trips { get; protected set; } = new List<Trip>();
         
         protected Driver() { }
         
         public Driver(
-            string firstName,
-            string lastName,
-            string email,
-            string cedula,
-            string phoneNumber,
-            int rolId,
+            int PersonId,
             string driverLicence,
-            DateTime licenceExpirationDate,
-            string createdBy)
-            : base(firstName, lastName, email, cedula, phoneNumber, rolId, UserType.Driver, createdBy)
+            DateTimeOffset LicenceExpirationDate
+            )
         {
             DriverLicence = driverLicence;
-            LicenceExpirationDate = licenceExpirationDate;
+            this.LicenceExpirationDate = LicenceExpirationDate;
             IsAvailable = true;
         }
         
         public bool IsLicenceValid() => LicenceExpirationDate > DateTime.UtcNow;
         
-        public void MarkAsUnavailable(string modifiedBy)
+        public Result<bool> MarkAsUnavailable(string modifiedBy)
         {
             if (!IsAvailable)
-                throw new DriverNotAvailableException("Driver is already unavailable");
+               return Result<bool>.Failure(DomainErrors.Person.Unavailable);
             IsAvailable = false;
             SetModificationInfo(modifiedBy);
+
+            return Result<bool>.Success(IsAvailable);
         }
         
-        public void MarkAsAvailable(string modifiedBy)
+        public Result<bool> MarkAsAvailable(string modifiedBy)
         {
             if (IsAvailable)
-                throw new InvalidUserException("Driver is already available");
-            
+                return Result<bool>.Failure(DomainErrors.Person.Available);
+
             if (!IsLicenceValid())
-                throw new InvalidUserException("Cannot mark driver as available with expired licence");
+                return Result<bool>.Failure(DomainErrors.Person.LicenseExpired);
             
             IsAvailable = true;
             SetModificationInfo(modifiedBy);
+            return Result<bool>.Success(IsAvailable);
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-
+﻿
 namespace SGA.Domain.Exceptions.Trips
 {
     public class TripNotAvailableException : Exception

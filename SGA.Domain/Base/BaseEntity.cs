@@ -4,17 +4,17 @@ using SGA.Domain.DomainEvents;
 
 namespace SGA.Domain.Base
 {
-    public abstract class BaseEntity<T>
+    public abstract class BaseEntity<TId>
     {
-        public T Id { get; protected set; }
-        
-        public DateTime CreatedAt { get; protected set; }
-        public string CreatedBy { get; protected set; } = string.Empty;
-        public DateTime? ModifiedAt { get; protected set; }
-        public string? ModifiedBy { get; protected set; }
-        public bool IsDeleted { get; protected set; }
-        public DateTime? DeletedAt { get; protected set; }
-        public string? DeletedBy { get; protected set; }
+        public TId Id { get; set; }
+         
+        public DateTime CreatedAt { get;  set; }
+        public string CreatedBy { get;  set; } = string.Empty;
+        public DateTime? ModifiedAt { get;  set; }
+        public string? ModifiedBy { get;  set; }
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get;  set; }
+        public string? DeletedBy { get;  set; }
 
         private readonly List<IDomainEvent> _domainEvents = new();
         public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();

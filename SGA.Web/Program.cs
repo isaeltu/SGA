@@ -8,6 +8,11 @@ namespace SGA.Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Conecction string 
+
+           
+
+
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();

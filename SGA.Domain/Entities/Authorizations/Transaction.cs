@@ -8,18 +8,16 @@ namespace SGA.Domain.Entities.Authorizations
 {
     public class Transaction : BaseEntity<int>
     {
-        public int AuthorizationId { get; protected set; }
-        public int? TripId { get; protected set; }
+        public int AuthorizationId { get;  set; }
+        public int? TripId { get; set; }
         
-        public Money Amount { get; protected set; } = null!;
+        public Money Amount { get;  set; } = null!;
+        public DateTime TransactionDate { get;  set; }
+        public string? Description { get;  set; }     
+        public TransactionType Type { get;  set; }
         
-        public DateTime TransactionDate { get; protected set; }
-        public string? Description { get; protected set; }
-        
-        public TransactionType Type { get; protected set; }
-        
-        public Authorization Authorization { get; protected set; } = null!;
-        public Trip? Trip { get; protected set; }
+        public Authorization Authorization { get;  set; } = null!;
+        public Trip? Trip { get;  set; }
         
         protected Transaction() { }
         

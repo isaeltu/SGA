@@ -5,9 +5,9 @@ namespace SGA.Domain.Services.Interfaces.Users
 {
     public interface IUserDomainService
     {
-        Result ActivateUser(Usuario usuario, string modifiedBy);
-        Result DeactivateUser(Usuario usuario, string modifiedBy);
-        Result MarkDriverAvailable(Driver driver, string modifiedBy);
-        Result MarkDriverUnavailable(Driver driver, string modifiedBy);
+        Task<Person> ActivateUserAsync(Person person, string modifiedBy);
+        Task<Person> DeactivateUserAsync(Person person, string modifiedBy);
+        Task<Driver> MarkDriverAvailableAsync(Driver driver, string modifiedBy);
+        Task<Driver> MarkDriverUnavailableAsync(Driver driver, string modifiedBy);
     }
 }

@@ -9,22 +9,22 @@ namespace SGA.Domain.Entities.Incidents
 {
     public class Incident : BaseEntity<int>
     {
-        public int TripId { get; protected set; }
-        public int ReportedById { get; protected set; }
-        public int? ResolvedById { get; protected set; }
+        public int TripId { get; set; }
+        public int ReportedById { get; set; }
+        public int? ResolvedById { get;  set; }
         
-        public string Description { get; protected set; } = string.Empty;
-        public DateTime ReportedAt { get; protected set; }
-        public DateTime? ResolvedAt { get; protected set; }
-        public string? ResolutionNotes { get; protected set; }
+        public string Description { get;  set; }
+        public DateTime ReportedAt { get; set; }
+        public DateTime? ResolvedAt { get;  set; }
+        public string? ResolutionNotes { get; set; }
         
-        public IncidentType Type { get; protected set; }
-        public IncidentSeverity Severity { get; protected set; }
-        public IncidentStatus Status { get; protected set; }
+        public IncidentType Type { get;  set; }
+        public IncidentSeverity Severity { get;  set; }
+        public IncidentStatus Status { get;  set; }
         
-        public Trip Trip { get; protected set; } = null!;
-        public Usuario ReportedBy { get; protected set; } = null!;
-        public Usuario? ResolvedBy { get; protected set; }
+        public Trip Trip { get; set; }
+        public Person ReportedBy { get;  set; }
+        public Person? ResolvedBy { get;  set; }
         
         protected Incident() { }
         

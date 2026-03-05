@@ -5,8 +5,8 @@ namespace SGA.Domain.Services.Interfaces.Authorizations
 {
     public interface IAuthorizationDomainService
     {
-        Result AddBalance(Authorization authorization, decimal amount, string modifiedBy);
-        Result DeductBalance(Authorization authorization, decimal amount, string modifiedBy);
-        Result<bool> Validate(Authorization authorization);
+         Task AddBalanceAsync(Authorization authorization, decimal amount, string modifiedBy);
+         Task DeductBalanceAsync(Authorization authorization, decimal amount, string modifiedBy);
+         Task<bool> ValidateAsync(Authorization authorization);
     }
 }

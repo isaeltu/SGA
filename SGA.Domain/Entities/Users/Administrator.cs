@@ -1,27 +1,27 @@
-﻿using SGA.Domain.Enums.Users;
+﻿using SGA.Domain.Base;
+using SGA.Domain.Enums.Users;
 using System;
 
 namespace SGA.Domain.Entities.Users
 {
-    public class Administrator : Usuario
+    public class Administrator : BaseEntity<int>
     {
-        public AdminLevel AdminLevel { get; protected set; }
-        public DateTime? LastLoginAt { get; protected set; }
+        public int PersonId { get; set; }
+        public AdminLevel AdminLevel { get;  init; }
+        public DateTime? LastLoginAt { get; set; }
+        public UserType UserType { get; set; }
         
         protected Administrator() { }
         
         public Administrator(
-            string firstName,
-            string lastName,
-            string email,
-            string cedula,
-            string phoneNumber,
-            int rolId,
+            int personId,
             AdminLevel adminLevel,
             string createdBy)
-            : base(firstName, lastName, email, cedula, phoneNumber, rolId, UserType.Administrator, createdBy)
+           
         {
+            PersonId = personId;
             AdminLevel = adminLevel;
+            UserType = UserType.Administrator;
         }
         
         public void RecordLogin()

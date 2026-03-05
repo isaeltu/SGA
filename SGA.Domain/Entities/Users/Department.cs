@@ -9,7 +9,7 @@ namespace SGA.Domain.Entities.Users
         public string? Description { get; protected set; }
         public bool IsActive { get; protected set; }
         
-        public ICollection<Employee> Employees { get; protected set; } = new List<Employee>();
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
         
         protected Department() { }
         
