@@ -1,11 +1,11 @@
 ﻿using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SGA.Application.Behaviors;
 using SGA.Application.Commands;
-using SGA.Application.Handlers;
 using SGA.Application.Validations;
 using System.Reflection;
-using SharpGrip.FluentValidation.AutoValidation.Mvc;
 
 namespace SGA.Application
 {
@@ -15,12 +15,12 @@ namespace SGA.Application
            this IServiceCollection services,
             IConfiguration configuration)
         {
-            services.AddScoped<UpdateStudentHandler>();
-
             services.AddScoped<IValidator<UpdateStudentCommand>, UpdateStudentCommandValidator>();
 
             services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             
 
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());

@@ -10,6 +10,7 @@ namespace SGA.Domain.Entities.Transportation
 {
     public class Bus : BaseEntity<int>
     {
+        public int InstitutionId { get; set; }
         public LicensePlate LicensePlate { get; set; } = null!;
         public string Model { get; set; } = string.Empty;
         public int Year { get; set; }
@@ -17,6 +18,7 @@ namespace SGA.Domain.Entities.Transportation
         public int AvailableSeats { get; set; }
         
         public BusStatus Status { get; set; }
+        public Users.Institution? Institution { get; set; }
         
         protected Bus() { }
         

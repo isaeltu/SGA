@@ -1,6 +1,6 @@
 ﻿using SGA.Domain.Entities.Users;
 using SGA.Domain.Common;
-using SGA.Persistence.Repositories.SGA.Persistence.Repositories;
+using SGA.Persistence.Repositories;
 using SGA.Domain.Repositories.Users;
 using SGA.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -11,20 +11,17 @@ namespace SGA.Persistence.Repositories.Users
     public class StudentRepository : Repository<Student, int>, IStudentRepository
     {
         public readonly ApplicationDbContext _context;
-        public readonly DbSet<Student> _entity;
         public StudentRepository(ApplicationDbContext context) : base(context)
         
         {
             _context = context;
-            _entity = context.Set<Student>(); 
-             
         }
 
         public async Task<Result<Student>>  GetByEnrollmentId(string enrollmentId, Person person)
         {
             var student = await _context.Students
-                .Include(s => s.EnrollmentId)
                 .Include(s => s.College)
+                .Include(s => s.Person)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                  s => s.EnrollmentId.Value == enrollmentId &&
@@ -37,7 +34,7 @@ namespace SGA.Persistence.Repositories.Users
             
             if(student == null)
             {
-               return Result<Student>.Failure(new Error ("Student.NotFound", " El Estudiante es nulo "));
+                    return Result<Student>.Failure(new Error("Student.NotFound", "El estudiante no existe."));
             }
             
             return  Result<Student>.Success(student);

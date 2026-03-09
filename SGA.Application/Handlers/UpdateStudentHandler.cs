@@ -6,38 +6,22 @@ using System.Threading.Tasks;
 using FluentValidation;
 using MediatR;
 using SGA.Application.Commands;
-using SGA.Domain.Common;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Repositories.Users;
-using SGA.Domain.ValueObjects.Users;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace SGA.Application.Handlers
 {
     public class UpdateStudentHandler : IRequestHandler<UpdateStudentCommand>
     {
         public readonly IStudentRepository _studentRepository;
-        private readonly IValidator<UpdateStudentCommand> _validator;
 
-        public UpdateStudentHandler(IStudentRepository studentRepository,
-            IValidator<UpdateStudentCommand> validator
-            )
+        public UpdateStudentHandler(IStudentRepository studentRepository)
         {
             _studentRepository = studentRepository;
-            _validator = validator;
         }
 
         public async Task  Handle(UpdateStudentCommand request, CancellationToken ct)
         {
-            // Validar comando
-            var validatorResult = await _validator.ValidateAsync(request, ct);
-            if (!validatorResult.IsValid)
-            {
-                var errors = string.Join("; ", validatorResult.Errors.Select(e => e.ErrorMessage));
-                throw new ValidationException(errors);
-            }
-
-            // Buscar estudiante
             var student = await _studentRepository.GetByIdAsync(request.studentId, ct);
             if (student == null)
             {

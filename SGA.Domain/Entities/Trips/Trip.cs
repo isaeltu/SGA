@@ -10,6 +10,7 @@ namespace SGA.Domain.Entities.Trips
 {
     public class Trip : BaseEntity<int>
     {
+        public int InstitutionId { get; set; }
         public int RouteId { get; set; }
         public int DriverId { get;  set; }
         public int BusId { get;  set; }
@@ -25,6 +26,7 @@ namespace SGA.Domain.Entities.Trips
         public Route Route { get;  set; } = null!;
         public Driver Driver { get; set; } = null!;
         public Bus Bus { get; set; } = null!;
+        public Institution? Institution { get; set; }
         
         protected Trip() { }
         

@@ -15,6 +15,7 @@ namespace SGA.Domain.Entities.Users
         public string DriverLicence { get; set; }
         public DateTimeOffset LicenceExpirationDate { get; set; }
         public bool IsAvailable { get; set; }
+        public Person Person { get; set; } = null!;
         
         public ICollection<Trip> Trips { get; protected set; } = new List<Trip>();
         

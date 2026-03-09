@@ -7,12 +7,14 @@ namespace SGA.Domain.Entities.Transportation
 {
     public class Route : BaseEntity<int>
     {
+        public int InstitutionId { get; set; }
         public string Name { get; protected set; } = string.Empty;
         public string Origin { get; protected set; } = string.Empty;
         public string Destination { get; protected set; } = string.Empty;
         public decimal DistanceKm { get; protected set; }
         public int EstimatedDurationMinutes { get; protected set; }
         public bool IsActive { get; protected set; }
+        public Users.Institution? Institution { get; set; }
         
         public ICollection<RouteStop> RouteStops { get; protected set; } = new List<RouteStop>();
         public ICollection<Trip> Trips { get; protected set; } = new List<Trip>();

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using SGA.Application.Abstractions.Messaging;
+using SGA.Domain.DomainEvents;
 using SGA.Persistence.Entities;
 using SGA.Domain.Entities;
 using SGA.Domain.ValueObjects.Users;
@@ -11,9 +13,22 @@ namespace SGA.Persistence.Context;
 
 public partial class ApplicationDbContext : DbContext
 {
+    private readonly IMessageBus? _messageBus;
+    private readonly IDomainEventSerializer? _domainEventSerializer;
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
+    }
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        IMessageBus? messageBus,
+        IDomainEventSerializer? domainEventSerializer)
+        : base(options)
+    {
+        _messageBus = messageBus;
+        _domainEventSerializer = domainEventSerializer;
     }
 
     public virtual DbSet<Domain.Entities.Users.Administrator> Administrators { get; set; }
@@ -36,21 +51,23 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Incident> Incidents { get; set; }
 
-    public virtual DbSet<Institution> Institutions { get; set; }
+    public virtual DbSet<SGA.Persistence.Entities.Institution> Institutions { get; set; }
 
-    public virtual DbSet<Mode> Modes { get; set; }
+    public virtual DbSet<SGA.Persistence.Entities.Mode> Modes { get; set; }
 
     public virtual DbSet<Domain.Entities.Users.Operator> Operators { get; set; }
 
-    public virtual DbSet<Permission> Permissions { get; set; }
+    public virtual DbSet<SGA.Persistence.Entities.Permission> Permissions { get; set; }
 
     public virtual DbSet<Domain.Entities.Users.Person> Persons { get; set;}
 
     public virtual DbSet<Email> Emails { get; set; }
 
-    public virtual DbSet<PersonRole> PersonRoles { get; set; }
+    public virtual DbSet<SGA.Persistence.Entities.PersonRole> PersonRoles { get; set; }
 
     public virtual DbSet<Reservation> Reservations { get; set; }
+
+    public virtual DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     public virtual DbSet<Rol> Rols { get; set; }
 
@@ -67,6 +84,30 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<Trip> Trips { get; set; }
 
     public virtual DbSet<TripStop> TripStops { get; set; }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var domainEvents = CollectDomainEvents();
+
+        if (domainEvents.Count > 0)
+        {
+            AddOutboxMessages(domainEvents);
+        }
+
+        var result = await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (domainEvents.Count > 0)
+        {
+            await PublishOutboxMessagesAsync(domainEvents, cancellationToken).ConfigureAwait(false);
+        }
+
+        return result;
+    }
+
+    public override int SaveChanges()
+    {
+        return SaveChangesAsync(CancellationToken.None).GetAwaiter().GetResult();
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -154,7 +195,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Bus_Institutions");
         });
 
-        modelBuilder.Entity<College>(entity =>
+        modelBuilder.Entity<SGA.Domain.Entities.Users.College>(entity =>
         {
             entity.ToTable("College");
 
@@ -177,7 +218,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_College_Mode");
         });
 
-        modelBuilder.Entity<Department>(entity =>
+        modelBuilder.Entity<SGA.Domain.Entities.Users.Department>(entity =>
         {
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
@@ -192,7 +233,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Departments_Institutions");
         });
 
-        modelBuilder.Entity<Driver>(entity =>
+        modelBuilder.Entity<SGA.Domain.Entities.Users.Driver>(entity =>
         {
             entity.HasIndex(e => e.DriverLicence, "UQ_Drivers_Licence").IsUnique();
 
@@ -209,7 +250,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Drivers_Persons");
         });
 
-        modelBuilder.Entity<Employee>(entity =>
+        modelBuilder.Entity<SGA.Domain.Entities.Users.Employee>(entity =>
         {
             entity.HasIndex(e => e.EmployeeCode, "UQ_Employees_Code").IsUnique();
 
@@ -278,7 +319,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Incidents_Trips");
         });
 
-        modelBuilder.Entity<Institution>(entity =>
+        modelBuilder.Entity<SGA.Persistence.Entities.Institution>(entity =>
         {
             entity.HasIndex(e => e.Code, "UQ_Institutions_Code").IsUnique();
 
@@ -293,7 +334,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(200);
         });
 
-        modelBuilder.Entity<Mode>(entity =>
+        modelBuilder.Entity<SGA.Persistence.Entities.Mode>(entity =>
         {
             entity.ToTable("Mode");
 
@@ -302,7 +343,7 @@ public partial class ApplicationDbContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Operator>(entity =>
+        modelBuilder.Entity<SGA.Domain.Entities.Users.Operator>(entity =>
         {
             entity.HasIndex(e => e.PersonId, "UQ_Operators_PersonId").IsUnique();
 
@@ -314,7 +355,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Operators_Persons");
         });
 
-        modelBuilder.Entity<Permission>(entity =>
+        modelBuilder.Entity<SGA.Persistence.Entities.Permission>(entity =>
         {
             entity.HasIndex(e => e.Name, "UQ_Permissions_Name").IsUnique();
 
@@ -324,7 +365,7 @@ public partial class ApplicationDbContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Person>(entity =>
+        modelBuilder.Entity<SGA.Domain.Entities.Users.Person>(entity =>
         {
             entity.HasIndex(e => e.Email, "IX_Persons_Email");
 
@@ -354,7 +395,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Persons_Institutions");
         });
 
-        modelBuilder.Entity<PersonRole>(entity =>
+        modelBuilder.Entity<SGA.Persistence.Entities.PersonRole>(entity =>
         {
             entity.HasKey(e => new { e.PersonId, e.RolId });
 
@@ -403,6 +444,16 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Reservations_Trips");
         });
 
+            modelBuilder.Entity<OutboxMessage>(entity =>
+            {
+                entity.ToTable("OutboxMessages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.MessageType).HasMaxLength(250).IsRequired();
+                entity.Property(e => e.Payload).IsRequired();
+                entity.Property(e => e.OccurredOnUtc).IsRequired();
+                entity.Property(e => e.Error).HasMaxLength(4000);
+            });
+
         modelBuilder.Entity<Rol>(entity =>
         {
             entity.ToTable("Rol");
@@ -416,7 +467,7 @@ public partial class ApplicationDbContext : DbContext
             entity.HasMany(d => d.Permissions).WithMany(p => p.Rols)
                 .UsingEntity<Dictionary<string, object>>(
                     "RolPermission",
-                    r => r.HasOne<Permission>().WithMany()
+                    r => r.HasOne<SGA.Persistence.Entities.Permission>().WithMany()
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("FK_RolPermissions_Permission"),
@@ -573,6 +624,58 @@ public partial class ApplicationDbContext : DbContext
         });
 
         OnModelCreatingPartial(modelBuilder);
+    }
+
+    private List<IDomainEvent> CollectDomainEvents()
+    {
+        var domainEvents = ChangeTracker
+            .Entries<IHasDomainEvents>()
+            .Select(entry => entry.Entity)
+            .SelectMany(entity => entity.DomainEvents)
+            .ToList();
+
+        foreach (var entity in ChangeTracker.Entries<IHasDomainEvents>().Select(x => x.Entity))
+        {
+            entity.ClearDomainEvents();
+        }
+
+        return domainEvents;
+    }
+
+    private void AddOutboxMessages(IEnumerable<IDomainEvent> domainEvents)
+    {
+        if (_domainEventSerializer is null)
+        {
+            return;
+        }
+
+        var outbox = domainEvents.Select(domainEvent =>
+        {
+            var message = _domainEventSerializer.Serialize(domainEvent);
+            return new OutboxMessage
+            {
+                Id = Guid.NewGuid(),
+                MessageType = message.MessageType,
+                Payload = message.Payload,
+                OccurredOnUtc = message.OccurredOnUtc
+            };
+        }).ToList();
+
+        OutboxMessages.AddRange(outbox);
+    }
+
+    private async Task PublishOutboxMessagesAsync(IEnumerable<IDomainEvent> domainEvents, CancellationToken cancellationToken)
+    {
+        if (_messageBus is null || _domainEventSerializer is null)
+        {
+            return;
+        }
+
+        foreach (var domainEvent in domainEvents)
+        {
+            var message = _domainEventSerializer.Serialize(domainEvent);
+            await _messageBus.PublishAsync(message, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

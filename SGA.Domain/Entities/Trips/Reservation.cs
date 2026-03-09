@@ -55,6 +55,7 @@ namespace SGA.Domain.Entities.Trips
             
             Status = ReservationStatus.Boarded;
             SetModificationInfo(modifiedBy);
+            AddDomainEvent(new ReservationBoardedDomainEvent(Id, TripId, PersonId));
             
         }
         

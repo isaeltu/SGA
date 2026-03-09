@@ -4,7 +4,7 @@ using SGA.Domain.Base;
 namespace SGA.Domain.Repositories.Base
 {
     public interface IRepository<TEntity, TId>
-    where TEntity : class, IAuditEntity
+    where TEntity : BaseEntity<TId>
     {
       
         Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken);

@@ -14,7 +14,7 @@ namespace SGA.Domain.Entities.Users
         public UserType UserType { get; set; }
         public string? AssignedArea { get; protected set; }
         public int ShiftNumber { get; protected set; }
-        public Person person { get; init; }
+        public Person Person { get; init; } = null!;
         protected Operator() { }
         
         public Operator(

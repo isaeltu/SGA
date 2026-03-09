@@ -12,16 +12,26 @@ namespace SGA.Domain.Entities.Users
     public  class Person : BaseEntity<int>
     {
 
+        public int InstitutionId { get; init; }
         public int RolId { get; init; }
         public Email Email { get; init; } = null!;
         public PhoneNumber PhoneNumber { get; init; } = null!;
         public string? FirstName { get; init; }
         public string? LastName { get; init; }
-        private string? PasswordHash { get; init; }
+        public string? PasswordHash { get; init; }
         public string? Cedula { get; init; }
+        public bool IsActive { get; init; }
         public UserStatus Status { get; init; }
         public Rol Rol { get; init; }
-        public object Student { get; set; }
+        public Student? Student { get; set; }
+        public Institution? Institution { get; set; }
+        public ICollection<PersonRole> PersonRoles { get; set; } = new List<PersonRole>();
+        public Administrator? Administrator { get; set; }
+        public Driver? Driver { get; set; }
+        public Employee? Employee { get; set; }
+        public Operator? Operator { get; set; }
+        public ICollection<Incidents.Incident> IncidentReportedBies { get; set; } = new List<Incidents.Incident>();
+        public ICollection<Incidents.Incident> IncidentResolvedBies { get; set; } = new List<Incidents.Incident>();
 
         protected Person() { }
 
@@ -40,6 +50,7 @@ namespace SGA.Domain.Entities.Users
             this.FirstName = FirstName;
             this.LastName = LastName;
             this.Cedula = cedula;
+            IsActive = true;
             Status = UserStatus.Active;
         }
 

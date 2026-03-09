@@ -258,6 +258,32 @@ _UpgradeReport_Files/
 Backup*/
 UpgradeLog*.XML
 UpgradeLog*.htm
+
+# Copilot / chat artifacts
+.copilot/
+.copilot-history/
+*.copilot
+.github/copilot-instructions.md.local
+
+# AI agent chat/session artifacts
+.ai/
+.aider*
+.claude/
+.cursor/
+.roo/
+.windsurf/
+
+# VS Code/Copilot chat transcripts and session resources
+.vscode/**/chat-session-resources/
+.vscode/**/copilot-chat/
+.vscode/copilot-chat.json
+.vscode/chat-history.json
+
+# Generic chat logs
+*chat*.log
+*chat*.json
+*.transcript
+*.conversation
 ServiceFabricBackup/
 *.rptproj.bak
 

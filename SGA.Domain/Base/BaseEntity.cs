@@ -4,7 +4,7 @@ using SGA.Domain.DomainEvents;
 
 namespace SGA.Domain.Base
 {
-    public abstract class BaseEntity<TId>
+    public abstract class BaseEntity<TId> : IHasDomainEvents
     {
         public TId Id { get; set; }
          

@@ -7,6 +7,7 @@ namespace SGA.Domain.Entities.Users
     public class Administrator : BaseEntity<int>
     {
         public int PersonId { get; set; }
+        public Person Person { get; set; } = null!;
         public AdminLevel AdminLevel { get;  init; }
         public DateTime? LastLoginAt { get; set; }
         public UserType UserType { get; set; }
