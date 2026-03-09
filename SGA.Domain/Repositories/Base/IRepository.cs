@@ -10,8 +10,8 @@ namespace SGA.Domain.Repositories.Base
         Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken);
         Task<TEntity?> GetByIdAsync(TId id, CancellationToken cancellationToken);
         Task<IReadOnlyCollection<TEntity>> GetAllAsync(CancellationToken cancellationToken);
-        Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken);
-        Task<TEntity?> DeleteAsync(TId id, CancellationToken cancellationToken);
-        Task SaveAsync(CancellationToken cancellationToken);
+        Task<bool> UpdateAsync(TEntity entity, CancellationToken cancellationToken);
+        Task<bool> DeleteAsync(TId id, CancellationToken cancellationToken);
+        Task SaveChangeAsync(CancellationToken cancellationToken);
     }
 }

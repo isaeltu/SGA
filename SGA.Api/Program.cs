@@ -1,4 +1,4 @@
-
+using SGA.Persistence;
 namespace SGA.Api
 {
     public class Program
@@ -13,6 +13,8 @@ namespace SGA.Api
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddPersistence();
 
             var app = builder.Build();
 

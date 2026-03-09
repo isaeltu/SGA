@@ -5,7 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using SGA.Domain.Base;
+using SGA.Domain.Common;
 using SGA.Domain.Repositories.Base;
 using SGA.Persistence.Context;
 
@@ -16,8 +18,8 @@ namespace SGA.Persistence.Repositories
         public class Repository<TEntity, TId> : IRepository<TEntity, TId>
              where TEntity : BaseEntity<TId>, IAuditEntity
         {
-            private readonly ApplicationDbContext _context;
-            private readonly DbSet<TEntity> _entities;
+            public readonly ApplicationDbContext _context;
+            public readonly DbSet<TEntity> _entities;
 
             public Repository(ApplicationDbContext context)
             {
@@ -36,9 +38,9 @@ namespace SGA.Persistence.Repositories
             public async Task<TEntity?> GetByIdAsync(TId id, CancellationToken cancellationToken)
             {
                 
-                return await _entities
-                    .FindAsync(new object?[] { id }, cancellationToken)
-                    .ConfigureAwait(false);
+                return await _entities.
+                    FindAsync(id, cancellationToken).
+                    ConfigureAwait(false);
             }
 
             public async Task<IReadOnlyCollection<TEntity>> GetAllAsync(CancellationToken cancellationToken)
@@ -50,34 +52,37 @@ namespace SGA.Persistence.Repositories
             }
 
 
-            public async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken)
+            public async Task<bool> UpdateAsync(TEntity entity, CancellationToken cancellationToken)
             {
-                bool exists = await _entities
-                    .AnyAsync(e => e.Id!.Equals(entity.Id), cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    _entities.Update(entity);
+                   return await _context.SaveChangesAsync(cancellationToken) > 0;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
 
-                if (!exists)
-                    throw new KeyNotFoundException(
-                        $"{typeof(TEntity).Name} with id '{entity.Id}' was not found.");
-
-                _context.Entry(entity).State = EntityState.Modified; 
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-                return entity;
+                return false;
             }
 
-            public async Task<TEntity?> DeleteAsync(TId id, CancellationToken cancellationToken)
+            public async Task<bool> DeleteAsync(TId id, CancellationToken cancellationToken)
             {
-                var entity = await _entities
-                    .FindAsync(new object?[] { id }, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (entity is null) return null;
-
-                _entities.Remove(entity);
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-                return entity;
+                try
+                {
+                    TEntity? entity = await GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+                    entity!.IsDeleted = true;
+                    return await UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex )
+                {
+                    Result<TEntity> result;
+                    
+                }
+                return false;
             }
-            public async Task SaveAsync(CancellationToken cancellationToken)
+            public async Task SaveChangeAsync(CancellationToken cancellationToken)
             {
                 await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }

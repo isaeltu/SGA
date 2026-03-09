@@ -16,7 +16,7 @@ namespace SGA.Domain.Entities.Authorizations
         public Money Balance { get;  set; } = null!;
         public DateRange? ValidityPeriod { get;  set;}      
         public AuthorizationType Type { get;  set; }
-        public AuthorizationStatus Status { get;  set; }
+        public AuthorizationStatus Status { get;  set;}
         
         public Student Student { get; set; } = null!;
         public ICollection<Transaction> Transactions { get;  set; } = new List<Transaction>();

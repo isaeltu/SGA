@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using SGA.Persistence.Entities;
+using SGA.Domain.Entities;
+using SGA.Domain.ValueObjects.Users;
+using SGA.Domain.Entities.Users;
+using Student = SGA.Domain.Entities.Users.Student;
 
 namespace SGA.Persistence.Context;
 
@@ -12,7 +16,7 @@ public partial class ApplicationDbContext : DbContext
     {
     }
 
-    public virtual DbSet<Administrator> Administrators { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Administrator> Administrators { get; set; }
 
     public virtual DbSet<Authorization> Authorizations { get; set; }
 
@@ -20,13 +24,13 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Bus> Buses { get; set; }
 
-    public virtual DbSet<College> Colleges { get; set; }
+    public virtual DbSet<Domain.Entities.Users.College> Colleges { get; set; }
 
-    public virtual DbSet<Department> Departments { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Department> Departments { get; set; }
 
-    public virtual DbSet<Driver> Drivers { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Driver> Drivers { get; set; }
 
-    public virtual DbSet<Employee> Employees { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Employee> Employees { get; set; }
 
     public virtual DbSet<GpsLocation> GpsLocations { get; set; }
 
@@ -36,11 +40,13 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Mode> Modes { get; set; }
 
-    public virtual DbSet<Operator> Operators { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Operator> Operators { get; set; }
 
     public virtual DbSet<Permission> Permissions { get; set; }
 
-    public virtual DbSet<Person> Persons { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Person> Persons { get; set;}
+
+    public virtual DbSet<Email> Emails { get; set; }
 
     public virtual DbSet<PersonRole> PersonRoles { get; set; }
 
@@ -54,7 +60,7 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Stop> Stops { get; set; }
 
-    public virtual DbSet<Student> Students { get; set; }
+    public virtual DbSet<Domain.Entities.Users.Student> Students { get; set; }
 
     public virtual DbSet<Transaction> Transactions { get; set; }
 
@@ -64,12 +70,12 @@ public partial class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Administrator>(entity =>
+        modelBuilder.Entity<Domain.Entities.Users.Administrator>(entity =>
         {
             entity.HasIndex(e => e.PersonId, "UQ_Administrators_PersonId").IsUnique();
 
             entity.HasOne(d => d.Person).WithOne(p => p.Administrator)
-                .HasForeignKey<Administrator>(d => d.PersonId)
+                .HasForeignKey<Domain.Entities.Users.Administrator>(d => d.PersonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Administrators_Persons");
         });
@@ -198,7 +204,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.IsAvailable).HasDefaultValue(true);
 
             entity.HasOne(d => d.Person).WithOne(p => p.Driver)
-                .HasForeignKey<Driver>(d => d.PersonId)
+                .HasForeignKey<Domain.Entities.Users.Driver>(d => d.PersonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Drivers_Persons");
         });
@@ -219,7 +225,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Employees_Departments");
 
             entity.HasOne(d => d.Person).WithOne(p => p.Employee)
-                .HasForeignKey<Employee>(d => d.PersonId)
+                .HasForeignKey<Domain.Entities.Users.Employee>(d => d.PersonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Employees_Persons");
         });
@@ -303,7 +309,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.AssignedArea).HasMaxLength(100);
 
             entity.HasOne(d => d.Person).WithOne(p => p.Operator)
-                .HasForeignKey<Operator>(d => d.PersonId)
+                .HasForeignKey<Domain.Entities.Users.Operator>(d => d.PersonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Operators_Persons");
         });
@@ -332,7 +338,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.DeletedBy).HasMaxLength(255);
-            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.ComplexProperty(e => e.Email, e => { e.IsRequired();});
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LastName).HasMaxLength(50);
@@ -475,7 +481,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
         });
 
-        modelBuilder.Entity<Student>(entity =>
+        modelBuilder.Entity<Domain.Entities.Users.Student>(entity =>
         {
             entity.HasIndex(e => e.PersonId, "UQ_Students_PersonId").IsUnique();
 
@@ -492,7 +498,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Students_College");
 
             entity.HasOne(d => d.Person).WithOne(p => p.Student)
-                .HasForeignKey<Student>(d => d.PersonId)
+                .HasForeignKey<Domain.Entities.Users.Student>(d => d.PersonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Students_Persons");
         });

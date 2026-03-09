@@ -21,6 +21,7 @@ namespace SGA.Domain.Entities.Users
         public string? Cedula { get; init; }
         public UserStatus Status { get; init; }
         public Rol Rol { get; init; }
+        public object Student { get; set; }
 
         protected Person() { }
 

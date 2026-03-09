@@ -6,10 +6,11 @@ using System.Collections.Generic;
 using SGA.Domain.Common;
 using SGA.Domain.Events.Users;
 using SGA.Domain.Base;
+using System.Numerics;
 
 namespace SGA.Domain.Entities.Users
 {
-    public class Student : BaseEntity<int>
+    public class Student : BaseEntity<int>, IAuditEntity
     {
         
         public int? CollegeId { get; init;}

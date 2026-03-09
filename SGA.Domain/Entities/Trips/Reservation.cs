@@ -3,14 +3,13 @@ using SGA.Domain.Enums.Trips;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Entities.Authorizations;
 using SGA.Domain.DomainEvents.Trips;
-using System;
 
 namespace SGA.Domain.Entities.Trips
 {
-    public class Reservation : BaseEntity<int>
+    public class Reservation : BaseEntity<int>, IAuditEntity
     {
         public int TripId { get;  set; }
-        public int PersonId { get; set;}
+        public int PersonId {get; set;}
         public int AuthorizationId { get;  set; }
         
         public int QueueNumber { get;  set; }
