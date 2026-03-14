@@ -1,3 +1,4 @@
+using SGA.Application;
 using SGA.Persistence;
 namespace SGA.Api
 {
@@ -14,7 +15,8 @@ namespace SGA.Api
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.AddPersistence();
+            builder.Services.AddApplicationServices(builder.Configuration);
+            builder.Services.AddPersistence(builder.Configuration);
 
             var app = builder.Build();
 

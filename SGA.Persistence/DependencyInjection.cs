@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SGA.Application.Abstractions.Messaging;
 using SGA.Application.Abstractions.MultiTenancy;
@@ -17,8 +19,14 @@ namespace SGA.Persistence
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddPersistence(this IServiceCollection services)
+        public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
         {
+            var connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(connectionString));
+
             services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 
             services.AddScoped<IAuthorizationRepository, AuthorizationRepository>();
