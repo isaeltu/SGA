@@ -1,6 +1,6 @@
 using System;
 
-namespace SGA.Persistence.Entities
+namespace SGA.Domain.Entities.Messaging
 {
     public class OutboxMessage
     {

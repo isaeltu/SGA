@@ -11,10 +11,12 @@ namespace SGA.Domain.Entities.Transportation
         
         public string Name { get; protected set; } = string.Empty;
         public string? Address { get; protected set; }
+        public bool IsActive { get; protected set; } = true;
         
         public StopType Type { get; protected set; }
         
         public ICollection<RouteStop> RouteStops { get; protected set; } = new List<RouteStop>();
+        public ICollection<Trips.TripStop> TripStops { get; protected set; } = new List<Trips.TripStop>();
         
         protected Stop() { }
         

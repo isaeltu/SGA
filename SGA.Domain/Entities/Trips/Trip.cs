@@ -27,6 +27,11 @@ namespace SGA.Domain.Entities.Trips
         public Driver Driver { get; set; } = null!;
         public Bus Bus { get; set; } = null!;
         public Institution? Institution { get; set; }
+        public ICollection<Boarding> Boardings { get; set; } = new List<Boarding>();
+        public ICollection<GpsLocation> GpsLocations { get; set; } = new List<GpsLocation>();
+        public ICollection<Incident> Incidents { get; set; } = new List<Incident>();
+        public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+        public ICollection<TripStop> TripStops { get; set; } = new List<TripStop>();
         
         protected Trip() { }
         

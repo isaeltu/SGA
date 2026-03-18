@@ -19,6 +19,7 @@ namespace SGA.Domain.Entities.Transportation
         
         public BusStatus Status { get; set; }
         public Users.Institution? Institution { get; set; }
+        public ICollection<Trip> Trips { get; set; } = new List<Trip>();
         
         protected Bus() { }
         

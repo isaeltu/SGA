@@ -16,6 +16,13 @@ public class TripsController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpPost]
+    public async Task<ActionResult<int>> Create([FromBody] CreateTripCommand command, CancellationToken cancellationToken)
+    {
+        var id = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { tripId = id }, id);
+    }
+
     [HttpGet("{tripId:int}")]
     public async Task<IActionResult> GetById(int tripId, CancellationToken cancellationToken)
     {

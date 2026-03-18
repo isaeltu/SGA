@@ -26,6 +26,7 @@ namespace SGA.Domain.Entities.Users
         public Student? Student { get; set; }
         public Institution? Institution { get; set; }
         public ICollection<PersonRole> PersonRoles { get; set; } = new List<PersonRole>();
+        public ICollection<Trips.Reservation> Reservations { get; set; } = new List<Trips.Reservation>();
         public Administrator? Administrator { get; set; }
         public Driver? Driver { get; set; }
         public Employee? Employee { get; set; }

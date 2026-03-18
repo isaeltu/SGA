@@ -16,6 +16,13 @@ public class ReservationsController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpPost]
+    public async Task<ActionResult<int>> Create([FromBody] CreateReservationCommand command, CancellationToken cancellationToken)
+    {
+        var id = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { reservationId = id }, id);
+    }
+
     [HttpGet("{reservationId:int}")]
     public async Task<IActionResult> GetById(int reservationId, CancellationToken cancellationToken)
     {

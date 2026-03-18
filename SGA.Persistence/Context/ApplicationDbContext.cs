@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using SGA.Application.Abstractions.Messaging;
 using SGA.Domain.DomainEvents;
-using SGA.Persistence.Entities;
-using SGA.Domain.Entities;
+using SGA.Domain.Entities.Authorizations;
+using SGA.Domain.Entities.Incidents;
+using SGA.Domain.Entities.Messaging;
+using SGA.Domain.Entities.Transportation;
+using SGA.Domain.Entities.Trips;
 using SGA.Domain.ValueObjects.Users;
 using SGA.Domain.Entities.Users;
-using Student = SGA.Domain.Entities.Users.Student;
+using SGA.Domain.ValueObjects.Transportation;
 
 namespace SGA.Persistence.Context;
 
@@ -51,29 +54,27 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Incident> Incidents { get; set; }
 
-    public virtual DbSet<SGA.Persistence.Entities.Institution> Institutions { get; set; }
+    public virtual DbSet<Institution> Institutions { get; set; }
 
-    public virtual DbSet<SGA.Persistence.Entities.Mode> Modes { get; set; }
+    public virtual DbSet<Mode> Modes { get; set; }
 
     public virtual DbSet<Domain.Entities.Users.Operator> Operators { get; set; }
 
-    public virtual DbSet<SGA.Persistence.Entities.Permission> Permissions { get; set; }
+    public virtual DbSet<Permission> Permissions { get; set; }
 
     public virtual DbSet<Domain.Entities.Users.Person> Persons { get; set;}
 
-    public virtual DbSet<Email> Emails { get; set; }
-
-    public virtual DbSet<SGA.Persistence.Entities.PersonRole> PersonRoles { get; set; }
+    public virtual DbSet<PersonRole> PersonRoles { get; set; }
 
     public virtual DbSet<Reservation> Reservations { get; set; }
 
     public virtual DbSet<OutboxMessage> OutboxMessages { get; set; }
 
-    public virtual DbSet<Rol> Rols { get; set; }
+    public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<RouteStop> RouteStops { get; set; }
 
-    public virtual DbSet<Routee> Routees { get; set; }
+    public virtual DbSet<Route> Routes { get; set; }
 
     public virtual DbSet<Stop> Stops { get; set; }
 
@@ -111,6 +112,8 @@ public partial class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Ignore<SGA.Domain.ValueObjects.Transportation.Coordinate>();
+
         modelBuilder.Entity<Domain.Entities.Users.Administrator>(entity =>
         {
             entity.HasIndex(e => e.PersonId, "UQ_Administrators_PersonId").IsUnique();
@@ -123,7 +126,19 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Authorization>(entity =>
         {
-            entity.Property(e => e.Balance).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Balance)
+                .HasConversion(
+                    amount => amount.Amount,
+                    value => new SGA.Domain.ValueObjects.Authorizations.Money(value))
+                .HasColumnType("decimal(10, 2)");
+            entity.ComplexProperty(e => e.ValidityPeriod, period =>
+            {
+                period.Property(p => p.StartDate)
+                    .HasColumnName("StartDate");
+                period.Property(p => p.EndDate)
+                    .HasColumnName("EndDate");
+            });
+            entity.ComplexProperty(e => e.ValidityPeriod).IsRequired();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.DeletedBy).HasMaxLength(255);
@@ -131,10 +146,12 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Active");
+                .HasConversion<string>()
+                .HasDefaultValue(SGA.Domain.Enums.Authorizations.AuthorizationStatus.Active);
             entity.Property(e => e.Type)
                 .HasMaxLength(20)
-                .IsUnicode(false);
+                .IsUnicode(false)
+                .HasConversion<string>();
 
             entity.HasOne(d => d.Student).WithMany(p => p.Authorizations)
                 .HasForeignKey(d => d.StudentId)
@@ -149,12 +166,13 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.BoardingType)
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("QrCode");
+                .HasConversion<string>()
+                .HasDefaultValue(SGA.Domain.Enums.Trips.BoardingType.QrCode);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
 
-            entity.HasOne(d => d.Reservation).WithMany(p => p.Boardings)
-                .HasForeignKey(d => d.ReservationId)
+            entity.HasOne(d => d.Reservation).WithOne(p => p.Boarding)
+                .HasForeignKey<Boarding>(d => d.ReservationId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Boardings_Reservations");
 
@@ -181,6 +199,9 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.DeletedBy).HasMaxLength(255);
             entity.Property(e => e.LicensePlate)
+                .HasConversion(
+                    plate => plate.Value,
+                    value => new LicensePlate(value))
                 .HasMaxLength(12)
                 .IsUnicode(false);
             entity.Property(e => e.Model).HasMaxLength(50);
@@ -188,7 +209,8 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(30)
                 .IsUnicode(false)
-                .HasDefaultValue("Available");
+                .HasConversion<string>()
+                .HasDefaultValue(SGA.Domain.Enums.Transportation.BusStatus.Available);
 
             entity.HasOne(d => d.Institution).WithMany(p => p.Buses)
                 .HasForeignKey(d => d.InstitutionId)
@@ -235,6 +257,8 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<SGA.Domain.Entities.Users.Driver>(entity =>
         {
+            entity.Ignore(e => e.Trips);
+
             entity.HasIndex(e => e.DriverLicence, "UQ_Drivers_Licence").IsUnique();
 
             entity.HasIndex(e => e.PersonId, "UQ_Drivers_PersonId").IsUnique();
@@ -257,6 +281,9 @@ public partial class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.PersonId, "UQ_Employees_PersonId").IsUnique();
 
             entity.Property(e => e.EmployeeCode)
+                .HasConversion(
+                    code => code.Value,
+                    value => new EmployeeCode(value))
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.Position).HasMaxLength(100);
@@ -275,9 +302,18 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
-            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
-            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
-            entity.Property(e => e.Speed).HasColumnType("decimal(5, 2)");
+            entity.ComplexProperty(e => e.Location, location =>
+            {
+                location.Property(p => p.Latitude)
+                    .HasColumnName("Latitude")
+                    .HasColumnType("decimal(9, 6)");
+                location.Property(p => p.Longitude)
+                    .HasColumnName("Longitude")
+                    .HasColumnType("decimal(9, 6)");
+            });
+            entity.Property(e => e.SpeedKmh)
+                .HasColumnName("Speed")
+                .HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Timestamp).HasDefaultValueSql("(getutcdate())");
 
             entity.HasOne(d => d.Trip).WithMany(p => p.GpsLocations)
@@ -293,16 +329,19 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.DeletedBy).HasMaxLength(255);
             entity.Property(e => e.ModifiedBy).HasMaxLength(255);
             entity.Property(e => e.ReportedAt).HasDefaultValueSql("(getutcdate())");
-            entity.Property(e => e.Severity)
-                .HasMaxLength(20)
-                .IsUnicode(false);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Open");
+                .HasConversion<string>()
+                .HasDefaultValue(SGA.Domain.Enums.Incidents.IncidentStatus.Open);
             entity.Property(e => e.Type)
                 .HasMaxLength(30)
-                .IsUnicode(false);
+                .IsUnicode(false)
+                .HasConversion<string>();
+            entity.Property(e => e.Severity)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasConversion<string>();
 
             entity.HasOne(d => d.ReportedBy).WithMany(p => p.IncidentReportedBies)
                 .HasForeignKey(d => d.ReportedById)
@@ -319,7 +358,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Incidents_Trips");
         });
 
-        modelBuilder.Entity<SGA.Persistence.Entities.Institution>(entity =>
+        modelBuilder.Entity<Institution>(entity =>
         {
             entity.HasIndex(e => e.Code, "UQ_Institutions_Code").IsUnique();
 
@@ -334,7 +373,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(200);
         });
 
-        modelBuilder.Entity<SGA.Persistence.Entities.Mode>(entity =>
+        modelBuilder.Entity<Mode>(entity =>
         {
             entity.ToTable("Mode");
 
@@ -355,7 +394,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Operators_Persons");
         });
 
-        modelBuilder.Entity<SGA.Persistence.Entities.Permission>(entity =>
+        modelBuilder.Entity<Permission>(entity =>
         {
             entity.HasIndex(e => e.Name, "UQ_Permissions_Name").IsUnique();
 
@@ -367,6 +406,9 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<SGA.Domain.Entities.Users.Person>(entity =>
         {
+            entity.Ignore(e => e.IncidentReportedBies);
+            entity.Ignore(e => e.IncidentResolvedBies);
+
             entity.HasIndex(e => e.Email, "IX_Persons_Email");
 
             entity.HasIndex(e => e.InstitutionId, "IX_Persons_InstitutionId");
@@ -379,14 +421,23 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.DeletedBy).HasMaxLength(255);
-            entity.ComplexProperty(e => e.Email, e => { e.IsRequired();});
+            entity.Property(e => e.Email)
+                .HasConversion(
+                    email => email.Value,
+                    value => new Email(value))
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .IsRequired();
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.ModifiedBy).HasMaxLength(255);
             entity.Property(e => e.PasswordHash).HasMaxLength(250);
             entity.Property(e => e.PhoneNumber)
-                .HasMaxLength(15)
+                .HasConversion(
+                    phone => phone.Value,
+                    value => new PhoneNumber(value))
+                .HasMaxLength(10)
                 .IsUnicode(false);
 
             entity.HasOne(d => d.Institution).WithMany(p => p.People)
@@ -395,9 +446,9 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Persons_Institutions");
         });
 
-        modelBuilder.Entity<SGA.Persistence.Entities.PersonRole>(entity =>
+        modelBuilder.Entity<PersonRole>(entity =>
         {
-            entity.HasKey(e => new { e.PersonId, e.RolId });
+            entity.HasKey(e => new { e.PersonId, e.RoleId });
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
 
@@ -406,8 +457,8 @@ public partial class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PersonRoles_Persons");
 
-            entity.HasOne(d => d.Rol).WithMany(p => p.PersonRoles)
-                .HasForeignKey(d => d.RolId)
+            entity.HasOne(d => d.Role).WithMany(p => p.PersonRoles)
+                .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PersonRoles_Rol");
         });
@@ -426,7 +477,8 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(30)
                 .IsUnicode(false)
-                .HasDefaultValue("Confirmed");
+                .HasConversion<string>()
+                .HasDefaultValue(SGA.Domain.Enums.Trips.ReservationStatus.Confirmed);
 
             entity.HasOne(d => d.Authorization).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.AuthorizationId)
@@ -434,7 +486,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Reservations_Authorizations");
 
             entity.HasOne(d => d.Student).WithMany(p => p.Reservations)
-                .HasForeignKey(d => d.StudentId)
+                .HasForeignKey(d => d.PersonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reservations_Students");
 
@@ -454,7 +506,7 @@ public partial class ApplicationDbContext : DbContext
                 entity.Property(e => e.Error).HasMaxLength(4000);
             });
 
-        modelBuilder.Entity<Rol>(entity =>
+        modelBuilder.Entity<Role>(entity =>
         {
             entity.ToTable("Rol");
 
@@ -464,14 +516,14 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.Name).HasMaxLength(50);
 
-            entity.HasMany(d => d.Permissions).WithMany(p => p.Rols)
+            entity.HasMany(d => d.Permissions).WithMany(p => p.Roles)
                 .UsingEntity<Dictionary<string, object>>(
                     "RolPermission",
-                    r => r.HasOne<SGA.Persistence.Entities.Permission>().WithMany()
+                    r => r.HasOne<Permission>().WithMany()
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("FK_RolPermissions_Permission"),
-                    l => l.HasOne<Rol>().WithMany()
+                    l => l.HasOne<Role>().WithMany()
                         .HasForeignKey("RolId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("FK_RolPermissions_Rol"),
@@ -499,7 +551,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_RouteStop_Stop");
         });
 
-        modelBuilder.Entity<Routee>(entity =>
+        modelBuilder.Entity<Route>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_Route");
 
@@ -514,7 +566,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Origin).HasMaxLength(100);
 
-            entity.HasOne(d => d.Institution).WithMany(p => p.Routees)
+            entity.HasOne(d => d.Institution).WithMany(p => p.Routes)
                 .HasForeignKey(d => d.InstitutionId)
                 .HasConstraintName("FK_Route_Institutions");
         });
@@ -526,8 +578,15 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.DeletedBy).HasMaxLength(255);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
-            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
+            entity.ComplexProperty(e => e.Location, location =>
+            {
+                location.Property(p => p.Latitude)
+                    .HasColumnName("Latitude")
+                    .HasColumnType("decimal(9, 6)");
+                location.Property(p => p.Longitude)
+                    .HasColumnName("Longitude")
+                    .HasColumnType("decimal(9, 6)");
+            });
             entity.Property(e => e.ModifiedBy).HasMaxLength(255);
             entity.Property(e => e.Name).HasMaxLength(100);
         });
@@ -538,6 +597,9 @@ public partial class ApplicationDbContext : DbContext
 
             entity.Property(e => e.CareerName).HasMaxLength(100);
             entity.Property(e => e.EnrollmentId)
+                .HasConversion(
+                    enrollment => enrollment.Value,
+                    value => new EnrollmentId(value))
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.Period)
@@ -556,22 +618,26 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Transaction>(entity =>
         {
-            entity.Property(e => e.Amount).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.BalanceAfter).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Amount)
+                .HasConversion(
+                    amount => amount.Amount,
+                    value => new SGA.Domain.ValueObjects.Authorizations.Money(value))
+                .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
-            entity.Property(e => e.TransactionType)
+            entity.Property(e => e.Type)
+                .HasColumnName("TransactionType")
                 .HasMaxLength(20)
-                .IsUnicode(false);
+                .IsUnicode(false)
+                .HasConversion(
+                    value => value.ToString(),
+                    value => (SGA.Domain.Enums.Authorizations.TransactionType)Enum.Parse(typeof(SGA.Domain.Enums.Authorizations.TransactionType), value));
 
             entity.HasOne(d => d.Authorization).WithMany(p => p.Transactions)
                 .HasForeignKey(d => d.AuthorizationId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Transactions_Authorizations");
 
-            entity.HasOne(d => d.Reservation).WithMany(p => p.Transactions)
-                .HasForeignKey(d => d.ReservationId)
-                .HasConstraintName("FK_Transactions_Reservations");
         });
 
         modelBuilder.Entity<Trip>(entity =>
@@ -583,7 +649,8 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(30)
                 .IsUnicode(false)
-                .HasDefaultValue("Scheduled");
+                .HasConversion<string>()
+                .HasDefaultValue(SGA.Domain.Enums.Trips.TripStatus.Scheduled);
 
             entity.HasOne(d => d.Bus).WithMany(p => p.Trips)
                 .HasForeignKey(d => d.BusId)

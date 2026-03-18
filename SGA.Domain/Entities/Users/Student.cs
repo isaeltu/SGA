@@ -20,6 +20,9 @@ namespace SGA.Domain.Entities.Users
         public College? College { get; init;}
         public Person Person { get; set;}
         public int PersonId { get; set;}
+        public ICollection<Authorization> Authorizations { get; set; } = new List<Authorization>();
+        public ICollection<Boarding> Boardings { get; set; } = new List<Boarding>();
+        public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
         
         public UserType UserType { get; set;}
         protected Student() { }
