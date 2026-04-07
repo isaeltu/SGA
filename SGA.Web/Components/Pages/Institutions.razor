@@ -37,7 +37,7 @@
             <h3>@institution.Name</h3>
             <p>ID: @institution.Id</p>
             <p>Codigo: @institution.Code</p>
-            <p>Creada: @institution.CreatedAt.ToLocalTime()</p>
+            <p>Activa: @(institution.IsActive ? "Si" : "No")</p>
         </article>
     }
 </section>

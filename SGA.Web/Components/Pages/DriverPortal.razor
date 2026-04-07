@@ -1,0 +1,105 @@
+@page "/portal/driver"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Portal Driver</h1>
+    <p class="lead">Consulta viajes activos por institucion y ejecuta acciones operativas.</p>
+
+    <div class="sga-form-grid">
+        <label>Institucion</label>
+        <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadTripsAsync">
+            <option value="0">Selecciona una institucion</option>
+            @foreach (var institution in institutions)
+            {
+                <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+            }
+        </select>
+    </div>
+
+    <div class="sga-inline-actions operator-actions">
+        <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
+        <input @bind="modifiedBy" class="sga-input" placeholder="Driver usuario" />
+        <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
+        <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
+        <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    <div class="sga-grid-cards">
+        @foreach (var trip in trips)
+        {
+            <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
+                <h3>Viaje @trip.Id</h3>
+                <p>Estado: @trip.Status</p>
+                <p>Ruta: @trip.RouteId | Bus: @trip.BusId</p>
+                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+            </article>
+        }
+    </div>
+</section>
+
+@code {
+    private List<SGA.Web.Models.InstitutionResponse> institutions = new();
+    private List<SGA.Web.Models.TripResponse> trips = new();
+    private int selectedInstitutionId;
+    private int selectedTripId;
+    private string modifiedBy = "web-driver";
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+        institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+    }
+
+    private async Task LoadTripsAsync()
+    {
+        if (selectedInstitutionId <= 0)
+        {
+            trips.Clear();
+            return;
+        }
+
+        var response = await ApiClient.GetTripsAsync(selectedInstitutionId, true, CancellationToken.None);
+        trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+    }
+
+    private async Task StartTripAsync() => await ExecuteTripActionAsync(
+        () => ApiClient.StartTripAsync(new SGA.Web.Models.StartTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
+        "Viaje iniciado por el driver.");
+
+    private async Task CompleteTripAsync() => await ExecuteTripActionAsync(
+        () => ApiClient.CompleteTripAsync(new SGA.Web.Models.CompleteTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
+        "Viaje completado por el driver.");
+
+    private async Task CancelTripAsync() => await ExecuteTripActionAsync(
+        () => ApiClient.CancelTripAsync(new SGA.Web.Models.CancelTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
+        "Viaje cancelado por el driver.");
+
+    private async Task ExecuteTripActionAsync(Func<Task> action, string successMessage)
+    {
+        message = null;
+        if (selectedTripId <= 0)
+        {
+            message = "Selecciona un viaje valido.";
+            return;
+        }
+
+        try
+        {
+            await action();
+            message = successMessage;
+            await LoadTripsAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+}

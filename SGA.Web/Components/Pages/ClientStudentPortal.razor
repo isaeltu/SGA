@@ -1,0 +1,169 @@
+@page "/portal/cliente-estudiante"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Portal Cliente y Estudiante</h1>
+    <p class="lead">Reserva sin iniciar sesion: selecciona institucion, elige viaje y confirma tus datos.</p>
+
+    <div class="sga-form-grid">
+        <label>Institucion</label>
+        <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadAvailableTripsAsync">
+            <option value="0">Selecciona una institucion</option>
+            @foreach (var institution in institutions)
+            {
+                <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+            }
+        </select>
+    </div>
+
+    <div class="sga-grid-cards">
+        @foreach (var trip in availableTrips)
+        {
+            <article class="sga-card @(selectedTripId == trip.Id ? "selected-card" : string.Empty)" @onclick="() => SelectTrip(trip.Id)">
+                <h3>Viaje @trip.Id</h3>
+                <p>Ruta: @trip.RouteId | Bus: @trip.BusId</p>
+                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                <p>Estado: @trip.Status | Disponibles: @trip.AvailableSeats</p>
+            </article>
+        }
+    </div>
+
+    <article class="sga-card">
+        <h3>Datos para reserva</h3>
+        <div class="sga-form-grid compact">
+            <label>Nombre</label>
+            <input @bind="guest.FirstName" class="sga-input" />
+
+            <label>Apellido</label>
+            <input @bind="guest.LastName" class="sga-input" />
+
+            <label>Correo</label>
+            <input @bind="guest.Email" type="email" class="sga-input" />
+
+            <label>Telefono</label>
+            <input @bind="guest.PhoneNumber" placeholder="8091234567" class="sga-input" />
+
+            <button class="sga-btn" @onclick="CreateGuestReservationAsync">Reservar ahora</button>
+        </div>
+    </article>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    @if (reservation is not null)
+    {
+        <article class="sga-ticket">
+            <p class="title">Reserva confirmada</p>
+            <p>Reserva: @reservation.Id</p>
+            <p>Viaje: @reservation.TripId</p>
+            <p>QR: @reservation.QrCode</p>
+            <p>Estado: @reservation.Status</p>
+            <p>Turno: @reservation.QueueNumber</p>
+        </article>
+    }
+</section>
+
+@code {
+    private List<SGA.Web.Models.InstitutionResponse> institutions = new();
+    private List<SGA.Web.Models.TripResponse> availableTrips = new();
+    private int selectedInstitutionId;
+    private int selectedTripId;
+    private string? message;
+    private SGA.Web.Models.ReservationResponse? reservation;
+
+    private readonly GuestReservationForm guest = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+        institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+    }
+
+    private async Task LoadAvailableTripsAsync()
+    {
+        reservation = null;
+        selectedTripId = 0;
+
+        if (selectedInstitutionId <= 0)
+        {
+            availableTrips.Clear();
+            return;
+        }
+
+        var response = await ApiClient.GetTripsAsync(selectedInstitutionId, true, CancellationToken.None);
+        availableTrips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+        message = availableTrips.Count == 0
+            ? "No hay viajes disponibles para esta institucion en este momento."
+            : null;
+    }
+
+    private void SelectTrip(int tripId)
+    {
+        selectedTripId = tripId;
+        message = null;
+    }
+
+    private async Task CreateGuestReservationAsync()
+    {
+        message = null;
+        reservation = null;
+
+        if (selectedInstitutionId <= 0)
+        {
+            message = "Selecciona una institucion.";
+            return;
+        }
+
+        if (selectedTripId <= 0)
+        {
+            message = "Selecciona un viaje disponible.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(guest.FirstName) ||
+            string.IsNullOrWhiteSpace(guest.LastName) ||
+            string.IsNullOrWhiteSpace(guest.Email) ||
+            string.IsNullOrWhiteSpace(guest.PhoneNumber))
+        {
+            message = "Completa nombre, apellido, correo y telefono.";
+            return;
+        }
+
+        try
+        {
+            var reservationId = await ApiClient.CreateGuestReservationAsync(
+                new SGA.Web.Models.CreateGuestReservationRequest(
+                    selectedInstitutionId,
+                    selectedTripId,
+                    guest.FirstName.Trim(),
+                    guest.LastName.Trim(),
+                    guest.Email.Trim(),
+                    guest.PhoneNumber.Trim(),
+                    "guest-web"),
+                CancellationToken.None);
+
+            reservation = await ApiClient.GetReservationByIdAsync(reservationId, CancellationToken.None);
+            message = reservation is null
+                ? $"Reserva creada con ID {reservationId}."
+                : "Reserva creada exitosamente.";
+
+            await LoadAvailableTripsAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private sealed class GuestReservationForm
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+    }
+}

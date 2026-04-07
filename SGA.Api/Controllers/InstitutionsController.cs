@@ -42,4 +42,11 @@ public class InstitutionsController : ControllerBase
 
         return Ok(institution);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var institutions = await _mediator.Send(new GetInstitutionsQuery(), cancellationToken);
+        return Ok(institutions);
+    }
 }

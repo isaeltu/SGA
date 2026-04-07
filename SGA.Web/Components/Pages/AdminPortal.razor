@@ -1,0 +1,139 @@
+@page "/portal/admin"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Portal Administrador</h1>
+    <p class="lead">Gestiona roles y permisos para organizar el acceso por perfil.</p>
+
+    <div class="sga-two-col">
+        <article class="sga-card">
+            <h3>Crear rol</h3>
+            <div class="sga-form-grid compact">
+                <label>Nombre del rol</label>
+                <input @bind="roleName" class="sga-input" />
+
+                <label>Descripcion</label>
+                <input @bind="roleDescription" class="sga-input" />
+
+                <label>Creado por</label>
+                <input @bind="createdBy" class="sga-input" />
+
+                <button class="sga-btn" @onclick="CreateRoleAsync">Crear rol</button>
+            </div>
+        </article>
+
+        <article class="sga-card">
+            <h3>Crear permiso</h3>
+            <div class="sga-form-grid compact">
+                <label>Nombre del permiso</label>
+                <input @bind="permissionName" class="sga-input" />
+
+                <label>Descripcion</label>
+                <input @bind="permissionDescription" class="sga-input" />
+
+                <label>Creado por</label>
+                <input @bind="createdBy" class="sga-input" />
+
+                <button class="sga-btn alt" @onclick="CreatePermissionAsync">Crear permiso</button>
+            </div>
+        </article>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    <article class="sga-card">
+        <h3>Permisos recomendados por rol</h3>
+        <div class="permission-grid">
+            <div>
+                <h4>Administrador</h4>
+                <ul>
+                    <li>roles.create</li>
+                    <li>permissions.create</li>
+                    <li>institutions.manage</li>
+                    <li>users.manage</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Operador</h4>
+                <ul>
+                    <li>trips.create</li>
+                    <li>trips.update</li>
+                    <li>reservations.board</li>
+                    <li>trips.monitor</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Driver</h4>
+                <ul>
+                    <li>trips.start</li>
+                    <li>trips.complete</li>
+                    <li>incidents.report</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Cliente y Estudiante</h4>
+                <ul>
+                    <li>reservations.create</li>
+                    <li>trips.read.available</li>
+                </ul>
+            </div>
+        </div>
+    </article>
+</section>
+
+@code {
+    private string roleName = string.Empty;
+    private string? roleDescription;
+    private string permissionName = string.Empty;
+    private string? permissionDescription;
+    private string createdBy = "web-admin";
+    private string? message;
+
+    private async Task CreateRoleAsync()
+    {
+        message = null;
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            message = "El nombre del rol es obligatorio.";
+            return;
+        }
+
+        try
+        {
+            var id = await ApiClient.CreateRoleAsync(new SGA.Web.Models.CreateRoleRequest(roleName, roleDescription, createdBy), CancellationToken.None);
+            message = $"Rol creado con ID {id}.";
+            roleName = string.Empty;
+            roleDescription = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task CreatePermissionAsync()
+    {
+        message = null;
+        if (string.IsNullOrWhiteSpace(permissionName))
+        {
+            message = "El nombre del permiso es obligatorio.";
+            return;
+        }
+
+        try
+        {
+            var id = await ApiClient.CreatePermissionAsync(new SGA.Web.Models.CreatePermissionRequest(permissionName, permissionDescription, createdBy), CancellationToken.None);
+            message = $"Permiso creado con ID {id}.";
+            permissionName = string.Empty;
+            permissionDescription = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+}

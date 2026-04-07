@@ -36,6 +36,13 @@ public class TripsController : ControllerBase
         return Ok(trip);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] int? institutionId, [FromQuery] bool onlyBookable = false, CancellationToken cancellationToken = default)
+    {
+        var trips = await _mediator.Send(new GetTripsQuery(institutionId, onlyBookable), cancellationToken);
+        return Ok(trips);
+    }
+
     [HttpPost("start")]
     public async Task<IActionResult> Start([FromBody] StartTripCommand command, CancellationToken cancellationToken)
     {
