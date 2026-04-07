@@ -1,0 +1,216 @@
+@page "/reservas"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Centro de Reservas</h1>
+    <p class="lead">Dos formas de reservar: rapida y guiada con ticket.</p>
+
+    <div class="sga-two-col">
+        <article class="sga-card">
+            <h3>Reserva rapida</h3>
+            <div class="sga-form-grid compact">
+                <label>Trip ID</label>
+                <input @bind="quick.TripId" type="number" class="sga-input" />
+
+                <label>Person ID</label>
+                <input @bind="quick.PersonId" type="number" class="sga-input" />
+
+                <label>Authorization ID</label>
+                <input @bind="quick.AuthorizationId" type="number" class="sga-input" />
+
+                <label>Creado por</label>
+                <input @bind="quick.CreatedBy" class="sga-input" />
+
+                <button type="button" class="sga-btn" @onclick="CreateQuickReservationAsync">Reservar</button>
+            </div>
+        </article>
+
+        <article class="sga-card">
+            <h3>Reserva guiada con ticket</h3>
+            <div class="sga-form-grid compact">
+                <label>Trip ID</label>
+                <input @bind="guided.TripId" type="number" class="sga-input" />
+
+                <label>Person ID</label>
+                <input @bind="guided.PersonId" type="number" class="sga-input" />
+
+                <label>Authorization ID</label>
+                <input @bind="guided.AuthorizationId" type="number" class="sga-input" />
+
+                <label>Asiento sugerido</label>
+                <input @bind="guided.SeatCode" class="sga-input" />
+
+                <label>Creado por</label>
+                <input @bind="guided.CreatedBy" class="sga-input" />
+
+                <button type="button" class="sga-btn" @onclick="CreateGuidedReservationAsync">Reservar y generar ticket</button>
+            </div>
+        </article>
+    </div>
+
+    <div class="sga-inline-actions">
+        <input @bind="reservationId" type="number" class="sga-input" placeholder="Reservation ID" />
+        <input @bind="modifiedBy" class="sga-input" placeholder="Operador" />
+        <button class="sga-btn alt" @onclick="GetReservationAsync">Consultar</button>
+        <button class="sga-btn alt" @onclick="BoardReservationAsync">Marcar abordaje</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    @if (reservation is not null)
+    {
+        <article class="sga-card">
+            <h3>Reserva @reservation.Id</h3>
+            <p>Viaje: @reservation.TripId</p>
+            <p>Persona: @reservation.PersonId</p>
+            <p>Autorizacion: @reservation.AuthorizationId</p>
+            <p>Estado: @reservation.Status</p>
+            <p>Cola: @reservation.QueueNumber</p>
+            <p>QR: @reservation.QrCode</p>
+        </article>
+    }
+
+    @if (ticket is not null)
+    {
+        <article class="sga-ticket">
+            <p class="title">Ticket de abordaje</p>
+            <p>Reserva: @ticket.ReservationId</p>
+            <p>Viaje: @ticket.TripId</p>
+            <p>Pasajero: @ticket.PersonId</p>
+            <p>Asiento: @ticket.SeatCode</p>
+            <p>Cola: @ticket.QueueNumber</p>
+            <p>Generado: @ticket.GeneratedAt.ToLocalTime()</p>
+        </article>
+    }
+</section>
+
+@code {
+    private ReservationForm quick = new();
+    private GuidedReservationForm guided = new();
+    private int reservationId;
+    private string modifiedBy = "web-operator";
+    private string? message;
+    private SGA.Web.Models.ReservationResponse? reservation;
+    private BoardingTicket? ticket;
+
+    private async Task CreateQuickReservationAsync()
+    {
+        message = null;
+        ticket = null;
+
+        try
+        {
+            reservationId = await ApiClient.CreateReservationAsync(
+                new SGA.Web.Models.CreateReservationRequest(quick.TripId, quick.PersonId, quick.AuthorizationId, quick.CreatedBy),
+                CancellationToken.None);
+
+            message = $"Reserva creada con ID {reservationId}.";
+            await GetReservationAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task CreateGuidedReservationAsync()
+    {
+        message = null;
+        ticket = null;
+
+        try
+        {
+            reservationId = await ApiClient.CreateReservationAsync(
+                new SGA.Web.Models.CreateReservationRequest(guided.TripId, guided.PersonId, guided.AuthorizationId, guided.CreatedBy),
+                CancellationToken.None);
+
+            await GetReservationAsync();
+
+            if (reservation is not null)
+            {
+                ticket = new BoardingTicket(
+                    reservation.Id,
+                    reservation.TripId,
+                    reservation.PersonId,
+                    guided.SeatCode,
+                    reservation.QueueNumber,
+                    DateTime.UtcNow);
+            }
+
+            message = $"Reserva guiada creada con ID {reservationId}. Ticket generado.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task GetReservationAsync()
+    {
+        message = null;
+        if (reservationId <= 0)
+        {
+            message = "Ingresa un Reservation ID valido.";
+            return;
+        }
+
+        try
+        {
+            reservation = await ApiClient.GetReservationByIdAsync(reservationId, CancellationToken.None);
+            if (reservation is null)
+            {
+                message = "No se encontro la reserva.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task BoardReservationAsync()
+    {
+        message = null;
+        if (reservationId <= 0)
+        {
+            message = "Ingresa un Reservation ID valido.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.BoardReservationAsync(new SGA.Web.Models.BoardReservationRequest(reservationId, modifiedBy), CancellationToken.None);
+            message = "Reserva marcada como abordada.";
+            await GetReservationAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private sealed class ReservationForm
+    {
+        public int TripId { get; set; }
+        public int PersonId { get; set; }
+        public int AuthorizationId { get; set; }
+        public string CreatedBy { get; set; } = "web-user";
+    }
+
+    private sealed class GuidedReservationForm : ReservationForm
+    {
+        public string SeatCode { get; set; } = "A1";
+    }
+
+    private sealed record BoardingTicket(
+        int ReservationId,
+        int TripId,
+        int PersonId,
+        string SeatCode,
+        int QueueNumber,
+        DateTime GeneratedAt);
+}

@@ -3,10 +3,134 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SGA.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="SGA Operadores" Height="760" Width="1080" MinHeight="700" MinWidth="980"
+        Background="#F4F0E8">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
+        <Border Background="#005F73" CornerRadius="12" Padding="10" Grid.Row="0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Panel Operador SGA-ITLA" Foreground="White" FontSize="22" FontWeight="Bold" Margin="0,0,20,0" />
+                <TextBlock Text="API Base URL:" Foreground="White" VerticalAlignment="Center" />
+                <TextBox x:Name="ApiUrlTextBox" Width="260" Margin="8,0,0,0" Text="https://localhost:7200" />
+            </StackPanel>
+        </Border>
+
+        <TabControl Grid.Row="1" Margin="0,12,0,12">
+            <TabItem Header="Instituciones">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <WrapPanel Margin="0,0,0,10">
+                        <TextBlock Text="Codigo" VerticalAlignment="Center" />
+                        <TextBox x:Name="InstitutionCodeTextBox" Width="130" Margin="6,0,12,0" />
+                        <TextBlock Text="Nombre" VerticalAlignment="Center" />
+                        <TextBox x:Name="InstitutionNameTextBox" Width="220" Margin="6,0,12,0" />
+                        <TextBlock Text="Creado por" VerticalAlignment="Center" />
+                        <TextBox x:Name="InstitutionCreatedByTextBox" Width="160" Margin="6,0,12,0" Text="desktop-operator" />
+                        <Button Content="Crear Institucion" Click="CreateInstitution_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                    </WrapPanel>
+                    <WrapPanel Grid.Row="1">
+                        <TextBlock Text="ID" VerticalAlignment="Center" />
+                        <TextBox x:Name="InstitutionSearchIdTextBox" Width="100" Margin="6,0,12,0" />
+                        <Button Content="Consultar" Click="GetInstitution_Click" Padding="14,8" Background="#005F73" Foreground="White" />
+                    </WrapPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Autobuses">
+                <Grid Margin="12">
+                    <WrapPanel>
+                        <TextBlock Text="Inst." VerticalAlignment="Center" />
+                        <TextBox x:Name="BusInstitutionIdTextBox" Width="80" Margin="6,0,12,0" />
+                        <TextBlock Text="Placa" VerticalAlignment="Center" />
+                        <TextBox x:Name="BusPlateTextBox" Width="120" Margin="6,0,12,0" />
+                        <TextBlock Text="Modelo" VerticalAlignment="Center" />
+                        <TextBox x:Name="BusModelTextBox" Width="150" Margin="6,0,12,0" />
+                        <TextBlock Text="Anno" VerticalAlignment="Center" />
+                        <TextBox x:Name="BusYearTextBox" Width="70" Margin="6,0,12,0" Text="2024" />
+                        <TextBlock Text="Capacidad" VerticalAlignment="Center" />
+                        <TextBox x:Name="BusCapacityTextBox" Width="80" Margin="6,0,12,0" Text="40" />
+                        <TextBox x:Name="BusCreatedByTextBox" Width="150" Margin="6,0,12,0" Text="desktop-operator" />
+                        <Button Content="Registrar" Click="CreateBus_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                        <Button Content="Refrescar" Click="LoadBuses_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
+                    </WrapPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Viajes">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <WrapPanel Margin="0,0,0,10">
+                        <TextBlock Text="Ruta" VerticalAlignment="Center" />
+                        <TextBox x:Name="TripRouteIdTextBox" Width="70" Margin="6,0,12,0" />
+                        <TextBlock Text="Chofer" VerticalAlignment="Center" />
+                        <TextBox x:Name="TripDriverIdTextBox" Width="70" Margin="6,0,12,0" />
+                        <TextBlock Text="Bus" VerticalAlignment="Center" />
+                        <TextBox x:Name="TripBusIdTextBox" Width="70" Margin="6,0,12,0" />
+                        <TextBlock Text="Inst." VerticalAlignment="Center" />
+                        <TextBox x:Name="TripInstitutionIdTextBox" Width="70" Margin="6,0,12,0" />
+                        <TextBlock Text="Asientos" VerticalAlignment="Center" />
+                        <TextBox x:Name="TripSeatsTextBox" Width="70" Margin="6,0,12,0" />
+                        <TextBox x:Name="TripCreatedByTextBox" Width="150" Margin="6,0,12,0" Text="desktop-operator" />
+                        <Button Content="Crear Viaje" Click="CreateTrip_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                    </WrapPanel>
+
+                    <WrapPanel Grid.Row="1">
+                        <TextBlock Text="Trip ID" VerticalAlignment="Center" />
+                        <TextBox x:Name="TripIdTextBox" Width="100" Margin="6,0,12,0" />
+                        <TextBox x:Name="TripModifiedByTextBox" Width="150" Margin="0,0,12,0" Text="desktop-operator" />
+                        <Button Content="Consultar" Click="GetTrip_Click" Padding="14,8" Background="#005F73" Foreground="White" />
+                        <Button Content="Iniciar" Click="StartTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
+                        <Button Content="Completar" Click="CompleteTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
+                        <Button Content="Cancelar" Click="CancelTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="#A4161A" Foreground="White" />
+                    </WrapPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Reservas y Ticket">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <WrapPanel Margin="0,0,0,10">
+                        <TextBlock Text="Trip ID" VerticalAlignment="Center" />
+                        <TextBox x:Name="ReservationTripIdTextBox" Width="85" Margin="6,0,12,0" />
+                        <TextBlock Text="Person ID" VerticalAlignment="Center" />
+                        <TextBox x:Name="ReservationPersonIdTextBox" Width="85" Margin="6,0,12,0" />
+                        <TextBlock Text="Auth ID" VerticalAlignment="Center" />
+                        <TextBox x:Name="ReservationAuthorizationIdTextBox" Width="85" Margin="6,0,12,0" />
+                        <TextBlock Text="Asiento" VerticalAlignment="Center" />
+                        <TextBox x:Name="ReservationSeatTextBox" Width="85" Margin="6,0,12,0" Text="A1" />
+                        <TextBox x:Name="ReservationCreatedByTextBox" Width="150" Margin="6,0,12,0" Text="desktop-user" />
+                        <Button Content="Reserva Rapida" Click="CreateReservationQuick_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                        <Button Content="Reserva Guiada + Ticket" Click="CreateReservationGuided_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
+                    </WrapPanel>
+
+                    <WrapPanel Grid.Row="1">
+                        <TextBlock Text="Reservation ID" VerticalAlignment="Center" />
+                        <TextBox x:Name="ReservationIdTextBox" Width="100" Margin="6,0,12,0" />
+                        <TextBox x:Name="ReservationModifiedByTextBox" Width="150" Margin="0,0,12,0" Text="desktop-operator" />
+                        <Button Content="Consultar" Click="GetReservation_Click" Padding="14,8" Background="#005F73" Foreground="White" />
+                        <Button Content="Abordar" Click="BoardReservation_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
+                    </WrapPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#D6CDC2" BorderThickness="1" CornerRadius="8" Padding="10">
+            <TextBox x:Name="OutputTextBox" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" Height="120" VerticalScrollBarVisibility="Auto" />
+        </Border>
     </Grid>
 </Window>

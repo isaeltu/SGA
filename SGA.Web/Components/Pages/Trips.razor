@@ -1,0 +1,170 @@
+@page "/viajes"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Operacion de Viajes</h1>
+    <p class="lead">Crear, iniciar, completar o cancelar viajes del servicio.</p>
+
+    <div class="sga-form-grid">
+        <label>Route ID</label>
+        <input @bind="createModel.RouteId" type="number" class="sga-input" />
+
+        <label>Driver ID</label>
+        <input @bind="createModel.DriverId" type="number" class="sga-input" />
+
+        <label>Bus ID</label>
+        <input @bind="createModel.BusId" type="number" class="sga-input" />
+
+        <label>Institution ID (opcional)</label>
+        <input @bind="createModel.InstitutionId" type="number" class="sga-input" />
+
+        <label>Salida programada</label>
+        <input @bind="createModel.ScheduledDepartureDate" type="date" class="sga-input" />
+
+        <label>Llegada programada</label>
+        <input @bind="createModel.ScheduledArrivalDate" type="date" class="sga-input" />
+
+        <label>Asientos disponibles (opcional)</label>
+        <input @bind="createModel.AvailableSeats" type="number" class="sga-input" />
+
+        <label>Creado por</label>
+        <input @bind="createModel.CreatedBy" class="sga-input" />
+
+        <button class="sga-btn" type="button" @onclick="CreateTripAsync">Crear viaje</button>
+    </div>
+
+    <div class="sga-inline-actions">
+        <input @bind="tripId" type="number" class="sga-input" placeholder="Trip ID" />
+        <input @bind="modifiedBy" class="sga-input" placeholder="Usuario operador" />
+        <button class="sga-btn alt" @onclick="GetTripAsync">Consultar</button>
+        <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
+        <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
+        <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    @if (trip is not null)
+    {
+        <article class="sga-card">
+            <h3>Viaje @trip.Id</h3>
+            <p>Estado: @trip.Status</p>
+            <p>Bus: @trip.BusId | Chofer: @trip.DriverId | Ruta: @trip.RouteId</p>
+            <p>Salida: @trip.ScheduledDepartureTime | Llegada: @trip.ScheduledArrivalTime</p>
+            <p>Disponibles: @trip.AvailableSeats</p>
+        </article>
+    }
+</section>
+
+@code {
+    private TripForm createModel = new();
+    private int tripId;
+    private string modifiedBy = "web-operator";
+    private string? message;
+    private SGA.Web.Models.TripResponse? trip;
+
+    private async Task CreateTripAsync()
+    {
+        message = null;
+        try
+        {
+            var departure = createModel.ScheduledDepartureDate.Date.AddHours(7);
+            var arrival = createModel.ScheduledArrivalDate.Date.AddHours(8);
+
+            var id = await ApiClient.CreateTripAsync(
+                new SGA.Web.Models.CreateTripRequest(
+                    createModel.RouteId,
+                    createModel.DriverId,
+                    createModel.BusId,
+                    createModel.InstitutionId <= 0 ? null : createModel.InstitutionId,
+                    departure,
+                    arrival,
+                    createModel.AvailableSeats <= 0 ? null : createModel.AvailableSeats,
+                    createModel.CreatedBy),
+                CancellationToken.None);
+
+            tripId = id;
+            message = $"Viaje creado con ID {id}.";
+            await GetTripAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task GetTripAsync()
+    {
+        message = null;
+        if (tripId <= 0)
+        {
+            message = "Ingresa un Trip ID valido.";
+            return;
+        }
+
+        try
+        {
+            trip = await ApiClient.GetTripByIdAsync(tripId, CancellationToken.None);
+            if (trip is null)
+            {
+                message = "No se encontro el viaje.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task StartTripAsync()
+    {
+        await ExecuteTripActionAsync(() => ApiClient.StartTripAsync(new SGA.Web.Models.StartTripRequest(tripId, modifiedBy), CancellationToken.None), "Viaje iniciado.");
+    }
+
+    private async Task CompleteTripAsync()
+    {
+        await ExecuteTripActionAsync(() => ApiClient.CompleteTripAsync(new SGA.Web.Models.CompleteTripRequest(tripId, modifiedBy), CancellationToken.None), "Viaje completado.");
+    }
+
+    private async Task CancelTripAsync()
+    {
+        await ExecuteTripActionAsync(() => ApiClient.CancelTripAsync(new SGA.Web.Models.CancelTripRequest(tripId, modifiedBy), CancellationToken.None), "Viaje cancelado.");
+    }
+
+    private async Task ExecuteTripActionAsync(Func<Task> action, string successMessage)
+    {
+        message = null;
+        if (tripId <= 0)
+        {
+            message = "Ingresa un Trip ID valido.";
+            return;
+        }
+
+        try
+        {
+            await action();
+            message = successMessage;
+            await GetTripAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private sealed class TripForm
+    {
+        public int RouteId { get; set; }
+        public int DriverId { get; set; }
+        public int BusId { get; set; }
+        public int InstitutionId { get; set; }
+        public DateTime ScheduledDepartureDate { get; set; } = DateTime.Today;
+        public DateTime ScheduledArrivalDate { get; set; } = DateTime.Today;
+        public int AvailableSeats { get; set; }
+        public string CreatedBy { get; set; } = "web-operator";
+    }
+}

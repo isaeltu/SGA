@@ -1,0 +1,99 @@
+@page "/instituciones"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Registro de Instituciones</h1>
+    <p class="lead">Base de multi-tenant para estudiantes, empleados y operadores.</p>
+
+    <div class="sga-form-grid">
+        <label>Codigo de institucion</label>
+        <input @bind="createModel.Code" class="sga-input" />
+
+        <label>Nombre</label>
+        <input @bind="createModel.Name" class="sga-input" />
+
+        <label>Creado por</label>
+        <input @bind="createModel.CreatedBy" class="sga-input" />
+
+        <button type="button" class="sga-btn" @onclick="CreateInstitutionAsync">Crear institucion</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    <hr />
+
+    <div class="sga-inline-actions">
+        <input @bind="searchId" type="number" class="sga-input" placeholder="ID de institucion" />
+        <button class="sga-btn alt" @onclick="GetInstitutionAsync">Consultar</button>
+    </div>
+
+    @if (institution is not null)
+    {
+        <article class="sga-card">
+            <h3>@institution.Name</h3>
+            <p>ID: @institution.Id</p>
+            <p>Codigo: @institution.Code</p>
+            <p>Creada: @institution.CreatedAt.ToLocalTime()</p>
+        </article>
+    }
+</section>
+
+@code {
+    private InstitutionForm createModel = new();
+    private int searchId;
+    private string? message;
+    private SGA.Web.Models.InstitutionResponse? institution;
+
+    private async Task CreateInstitutionAsync()
+    {
+        message = null;
+        try
+        {
+            var id = await ApiClient.CreateInstitutionAsync(
+                new SGA.Web.Models.CreateInstitutionRequest(createModel.Code, createModel.Name, createModel.CreatedBy),
+                CancellationToken.None);
+
+            message = $"Institucion creada con ID {id}.";
+            searchId = id;
+            await GetInstitutionAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task GetInstitutionAsync()
+    {
+        message = null;
+        if (searchId <= 0)
+        {
+            message = "Ingresa un ID valido.";
+            return;
+        }
+
+        try
+        {
+            institution = await ApiClient.GetInstitutionByIdAsync(searchId, CancellationToken.None);
+            if (institution is null)
+            {
+                message = "No se encontro la institucion.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private sealed class InstitutionForm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string CreatedBy { get; set; } = "web-admin";
+    }
+}

@@ -1,0 +1,110 @@
+@page "/autobuses"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+
+<section class="sga-section">
+    <h1>Registro de Autobuses</h1>
+    <p class="lead">Inventario institucional para asignacion de viajes.</p>
+
+    <div class="sga-form-grid">
+        <label>ID Institucion</label>
+        <input @bind="createModel.InstitutionId" type="number" class="sga-input" />
+
+        <label>Placa</label>
+        <input @bind="createModel.LicensePlate" class="sga-input" />
+
+        <label>Modelo</label>
+        <input @bind="createModel.Model" class="sga-input" />
+
+        <label>Anno</label>
+        <input @bind="createModel.Year" type="number" class="sga-input" />
+
+        <label>Capacidad</label>
+        <input @bind="createModel.Capacity" type="number" class="sga-input" />
+
+        <label>Creado por</label>
+        <input @bind="createModel.CreatedBy" class="sga-input" />
+
+        <button type="button" class="sga-btn" @onclick="CreateBusAsync">Registrar bus</button>
+        <button type="button" class="sga-btn alt" @onclick="LoadBusesAsync">Refrescar lista</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+
+    @if (buses.Count > 0)
+    {
+        <div class="sga-grid-cards">
+            @foreach (var bus in buses)
+            {
+                <article class="sga-card">
+                    <h3>@bus.LicensePlate</h3>
+                    <p>Modelo: @bus.Model (@bus.Year)</p>
+                    <p>Institucion: @bus.InstitutionId</p>
+                    <p>Capacidad: @bus.Capacity | Disponibles: @bus.AvailableSeats</p>
+                    <p>Estado: @bus.Status</p>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private BusForm createModel = new();
+    private List<SGA.Web.Models.BusResponse> buses = new();
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBusesAsync();
+    }
+
+    private async Task CreateBusAsync()
+    {
+        message = null;
+        try
+        {
+            var id = await ApiClient.CreateBusAsync(
+                new SGA.Web.Models.CreateBusRequest(
+                    createModel.InstitutionId,
+                    createModel.LicensePlate,
+                    createModel.Model,
+                    createModel.Year,
+                    createModel.Capacity,
+                    createModel.CreatedBy),
+                CancellationToken.None);
+
+            message = $"Autobus registrado con ID {id}.";
+            await LoadBusesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task LoadBusesAsync()
+    {
+        try
+        {
+            var response = await ApiClient.GetBusesAsync(CancellationToken.None);
+            buses = response?.ToList() ?? new List<SGA.Web.Models.BusResponse>();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private sealed class BusForm
+    {
+        public int InstitutionId { get; set; }
+        public string LicensePlate { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public int Year { get; set; } = DateTime.UtcNow.Year;
+        public int Capacity { get; set; } = 40;
+        public string CreatedBy { get; set; } = "web-operator";
+    }
+}

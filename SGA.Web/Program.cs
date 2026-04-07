@@ -1,4 +1,6 @@
 using SGA.Web.Components;
+using SGA.Web.Models;
+using SGA.Web.Services;
 
 namespace SGA.Web
 {
@@ -16,6 +18,13 @@ namespace SGA.Web
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+
+            builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("Api"));
+            builder.Services.AddHttpClient<SgaApiClient>((services, client) =>
+            {
+                var settings = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApiSettings>>().Value;
+                client.BaseAddress = new Uri(settings.BaseUrl);
+            });
 
             var app = builder.Build();
 
