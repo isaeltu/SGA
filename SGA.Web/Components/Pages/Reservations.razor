@@ -201,8 +201,12 @@
         public string CreatedBy { get; set; } = "web-user";
     }
 
-    private sealed class GuidedReservationForm : ReservationForm
+    private sealed class GuidedReservationForm
     {
+        public int TripId { get; set; }
+        public int PersonId { get; set; }
+        public int AuthorizationId { get; set; }
+        public string CreatedBy { get; set; } = "web-user";
         public string SeatCode { get; set; } = "A1";
     }
 

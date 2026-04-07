@@ -23,7 +23,7 @@ namespace SGA.WPF
                 throw new InvalidOperationException($"API {(int)response.StatusCode}: {body}");
             }
 
-            return await response.Content.ReadFromJsonAsync<int>() ?? 0;
+            return await response.Content.ReadFromJsonAsync<int>();
         }
 
         private void SetBaseAddress()
