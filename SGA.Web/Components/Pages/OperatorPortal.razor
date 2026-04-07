@@ -130,8 +130,8 @@
 
         try
         {
-            var departure = createModel.DepartureDate.Date + createModel.DepartureHour;
-            var arrival = createModel.ArrivalDate.Date + createModel.ArrivalHour;
+            var departure = createModel.DepartureDate.Date + createModel.DepartureHour.TimeOfDay;
+            var arrival = createModel.ArrivalDate.Date + createModel.ArrivalHour.TimeOfDay;
 
             var id = await ApiClient.CreateTripAsync(
                 new SGA.Web.Models.CreateTripRequest(
@@ -194,9 +194,9 @@
         public int DriverId { get; set; }
         public int BusId { get; set; }
         public DateTime DepartureDate { get; set; } = DateTime.Today;
-        public TimeSpan DepartureHour { get; set; } = new(7, 0, 0);
+        public DateTime DepartureHour { get; set; } = DateTime.Today.AddHours(7);
         public DateTime ArrivalDate { get; set; } = DateTime.Today;
-        public TimeSpan ArrivalHour { get; set; } = new(8, 0, 0);
+        public DateTime ArrivalHour { get; set; } = DateTime.Today.AddHours(8);
         public int? AvailableSeats { get; set; } = 40;
     }
 }
