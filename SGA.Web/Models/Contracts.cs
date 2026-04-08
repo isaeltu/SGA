@@ -11,6 +11,24 @@ public sealed record InstitutionResponse(int Id, string Code, string Name, bool 
 public sealed record CreateBusRequest(int InstitutionId, string LicensePlate, string Model, int Year, int Capacity, string CreatedBy);
 public sealed record BusResponse(int Id, int InstitutionId, string LicensePlate, string Model, int Year, int Capacity, int AvailableSeats, string Status);
 
+public sealed record CreateRouteRequest(
+    int InstitutionId,
+    string Name,
+    string Origin,
+    string Destination,
+    decimal DistanceKm,
+    int EstimatedDurationMinutes,
+    string CreatedBy);
+public sealed record RouteResponse(
+    int Id,
+    int InstitutionId,
+    string Name,
+    string Origin,
+    string Destination,
+    decimal DistanceKm,
+    int EstimatedDurationMinutes,
+    bool IsActive);
+
 public sealed record CreateReservationRequest(int TripId, int PersonId, int AuthorizationId, string CreatedBy);
 public sealed record CreateGuestReservationRequest(
     int InstitutionId,
@@ -55,6 +73,13 @@ public sealed record CreatePersonRequest(
 public sealed record CreateStudentUserRequest(int PersonId, int CollegeId, string EnrollmentId, string Period, string CareerName, string CreatedBy);
 public sealed record CreateOperatorUserRequest(int PersonId, string AssignedArea, int ShiftNumber, string CreatedBy);
 public sealed record CreateDriverUserRequest(int PersonId, string DriverLicense, DateTimeOffset LicenseExpirationDate, string CreatedBy);
+public sealed record DriverLookupResponse(
+    int DriverId,
+    int PersonId,
+    int InstitutionId,
+    string FullName,
+    string DriverLicense,
+    bool IsAvailable);
 public sealed record CreateEmployeeUserRequest(int PersonId, int DepartmentId, string EmployeeCode, string Position, DateTimeOffset HireDate, string CreatedBy);
 public sealed record CreateAdministratorUserRequest(int PersonId, int AdminLevel, string CreatedBy);
 
@@ -76,6 +101,7 @@ public sealed record TripResponse(
     int Id,
     int InstitutionId,
     int RouteId,
+    string? RouteName,
     int DriverId,
     int BusId,
     string Status,

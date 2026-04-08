@@ -6,7 +6,7 @@
 
 <section class="sga-section">
     <h1>Portal Operador</h1>
-    <p class="lead">Registra viajes y gestiona su estado para que aparezcan disponibles al cliente por institucion.</p>
+    <p class="lead">Gestiona buses, rutas y viajes para que los clientes reserven con informacion clara.</p>
 
     <div class="sga-form-grid">
         <label>Institucion asignada al operador</label>
@@ -14,16 +14,82 @@
     </div>
 
     <article class="sga-card">
+        <h3>Crear autobus</h3>
+        <div class="sga-form-grid compact">
+            <label>Placa</label>
+            <input @bind="busModel.LicensePlate" class="sga-input" />
+
+            <label>Modelo</label>
+            <input @bind="busModel.Model" class="sga-input" />
+
+            <label>Anio</label>
+            <input @bind="busModel.Year" type="number" class="sga-input" />
+
+            <label>Capacidad</label>
+            <input @bind="busModel.Capacity" type="number" class="sga-input" />
+
+            <button class="sga-btn alt" @onclick="CreateBusAsync">Registrar autobus</button>
+        </div>
+    </article>
+
+    <article class="sga-card">
+        <h3>Crear ruta</h3>
+        <div class="sga-form-grid compact">
+            <label>Nombre de ruta</label>
+            <input @bind="routeModel.Name" class="sga-input" />
+
+            <label>Origen</label>
+            <input @bind="routeModel.Origin" class="sga-input" />
+
+            <label>Destino</label>
+            <input @bind="routeModel.Destination" class="sga-input" />
+
+            <label>Distancia (km)</label>
+            <input @bind="routeModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+
+            <label>Duracion estimada (min)</label>
+            <input @bind="routeModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+
+            <button class="sga-btn alt" @onclick="CreateRouteAsync">Registrar ruta</button>
+        </div>
+    </article>
+
+    <article class="sga-card">
         <h3>Crear viaje</h3>
         <div class="sga-form-grid compact">
-            <label>Route ID</label>
-            <input @bind="createModel.RouteId" type="number" class="sga-input" />
+            <label>Ruta</label>
+            <select class="sga-input" @bind="createModel.RouteId">
+                <option value="0">Selecciona una ruta</option>
+                @foreach (var route in routes)
+                {
+                    <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
+                }
+            </select>
 
             <label>Driver ID</label>
             <input @bind="createModel.DriverId" type="number" class="sga-input" />
 
-            <label>Bus ID</label>
-            <input @bind="createModel.BusId" type="number" class="sga-input" />
+            <label>Drivers disponibles</label>
+            <div class="sga-inline-actions operator-actions">
+                <select class="sga-input" @bind="selectedDriverId">
+                    <option value="0">Selecciona un driver</option>
+                    @foreach (var driver in drivers)
+                    {
+                        <option value="@driver.DriverId">@driver.FullName - @driver.DriverLicense</option>
+                    }
+                </select>
+                <button class="sga-btn alt" @onclick="LoadDriversAsync">Cargar drivers</button>
+                <button class="sga-btn alt" @onclick="ApplySelectedDriver">Autocompletar Driver ID</button>
+            </div>
+
+            <label>Autobus</label>
+            <select class="sga-input" @bind="createModel.BusId">
+                <option value="0">Selecciona un autobus</option>
+                @foreach (var bus in buses)
+                {
+                    <option value="@bus.Id">@bus.LicensePlate - @bus.Model (@bus.Capacity asientos)</option>
+                }
+            </select>
 
             <label>Fecha salida</label>
             <input @bind="createModel.DepartureDate" type="date" class="sga-input" />
@@ -65,7 +131,7 @@
         {
             <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
                 <h3>Viaje @trip.Id</h3>
-                <p>Ruta: @trip.RouteId | Driver: @trip.DriverId | Bus: @trip.BusId</p>
+                <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Driver: @trip.DriverId | Bus: @trip.BusId</p>
                 <p>Estado: @trip.Status</p>
                 <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
                 <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
@@ -77,8 +143,12 @@
 
 @code {
     private List<SGA.Web.Models.TripResponse> trips = new();
+    private List<SGA.Web.Models.RouteResponse> routes = new();
+    private List<SGA.Web.Models.BusResponse> buses = new();
+    private List<SGA.Web.Models.DriverLookupResponse> drivers = new();
     private int selectedInstitutionId;
     private int selectedTripId;
+    private int selectedDriverId;
     private string institutionLabel = "No asignada";
     private string createdBy = "web-operator";
     private string modifiedBy = "web-operator";
@@ -86,6 +156,8 @@
     private bool redirectToLogin;
 
     private readonly TripCreateForm createModel = new();
+    private readonly BusCreateForm busModel = new();
+    private readonly RouteCreateForm routeModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,6 +182,9 @@
             ? $"Institucion ID {selectedInstitutionId}"
             : $"{institution.Name} ({institution.Code})";
 
+        await LoadRoutesAsync();
+        await LoadBusesAsync();
+        await LoadDriversAsync();
         await LoadTripsAsync();
     }
 
@@ -129,12 +204,118 @@
         trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
     }
 
+    private async Task LoadRoutesAsync()
+    {
+        var response = await ApiClient.GetRoutesAsync(selectedInstitutionId, CancellationToken.None);
+        routes = response?.Where(x => x.IsActive).OrderBy(x => x.Name).ToList() ?? new List<SGA.Web.Models.RouteResponse>();
+    }
+
+    private async Task LoadBusesAsync()
+    {
+        var response = await ApiClient.GetBusesAsync(CancellationToken.None);
+        buses = response?.Where(x => x.InstitutionId == selectedInstitutionId).ToList() ?? new List<SGA.Web.Models.BusResponse>();
+    }
+
+    private async Task LoadDriversAsync()
+    {
+        var response = await ApiClient.GetDriversAsync(selectedInstitutionId, true, CancellationToken.None);
+        drivers = response?.OrderBy(x => x.FullName).ToList() ?? new List<SGA.Web.Models.DriverLookupResponse>();
+
+        if (drivers.Count == 0)
+        {
+            message = "No hay drivers disponibles para esta institucion.";
+        }
+    }
+
+    private void ApplySelectedDriver()
+    {
+        if (selectedDriverId <= 0)
+        {
+            message = "Selecciona un driver antes de autocompletar.";
+            return;
+        }
+
+        createModel.DriverId = selectedDriverId;
+        message = $"Driver ID autocompletado: {selectedDriverId}.";
+    }
+
+    private async Task CreateBusAsync()
+    {
+        message = null;
+        if (string.IsNullOrWhiteSpace(busModel.LicensePlate) || string.IsNullOrWhiteSpace(busModel.Model) || busModel.Capacity <= 0)
+        {
+            message = "Completa placa, modelo y capacidad valida para registrar el autobus.";
+            return;
+        }
+
+        try
+        {
+            var busId = await ApiClient.CreateBusAsync(
+                new SGA.Web.Models.CreateBusRequest(
+                    selectedInstitutionId,
+                    busModel.LicensePlate.Trim(),
+                    busModel.Model.Trim(),
+                    busModel.Year,
+                    busModel.Capacity,
+                    createdBy),
+                CancellationToken.None);
+
+            message = $"Autobus registrado con ID {busId}.";
+            await LoadBusesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task CreateRouteAsync()
+    {
+        message = null;
+        if (string.IsNullOrWhiteSpace(routeModel.Name) ||
+            string.IsNullOrWhiteSpace(routeModel.Origin) ||
+            string.IsNullOrWhiteSpace(routeModel.Destination) ||
+            routeModel.DistanceKm <= 0 ||
+            routeModel.EstimatedDurationMinutes <= 0)
+        {
+            message = "Completa nombre, origen, destino, distancia y duracion para registrar la ruta.";
+            return;
+        }
+
+        try
+        {
+            var routeId = await ApiClient.CreateRouteAsync(
+                new SGA.Web.Models.CreateRouteRequest(
+                    selectedInstitutionId,
+                    routeModel.Name.Trim(),
+                    routeModel.Origin.Trim(),
+                    routeModel.Destination.Trim(),
+                    routeModel.DistanceKm,
+                    routeModel.EstimatedDurationMinutes,
+                    createdBy),
+                CancellationToken.None);
+
+            message = $"Ruta registrada con ID {routeId}.";
+            await LoadRoutesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
     private async Task CreateTripAsync()
     {
         message = null;
         if (selectedInstitutionId <= 0)
         {
             message = "Selecciona una institucion para registrar el viaje.";
+            return;
+        }
+
+        if (createModel.RouteId <= 0 || createModel.BusId <= 0 || createModel.DriverId <= 0)
+        {
+            message = "Selecciona ruta, autobus y driver validos para crear el viaje.";
             return;
         }
 
@@ -208,5 +389,22 @@
         public DateTime ArrivalDate { get; set; } = DateTime.Today;
         public DateTime ArrivalHour { get; set; } = DateTime.Today.AddHours(8);
         public int? AvailableSeats { get; set; } = 40;
+    }
+
+    private sealed class BusCreateForm
+    {
+        public string LicensePlate { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public int Year { get; set; } = DateTime.Today.Year;
+        public int Capacity { get; set; } = 40;
+    }
+
+    private sealed class RouteCreateForm
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public decimal DistanceKm { get; set; } = 1;
+        public int EstimatedDurationMinutes { get; set; } = 20;
     }
 }

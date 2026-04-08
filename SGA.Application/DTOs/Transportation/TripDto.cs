@@ -4,6 +4,7 @@ namespace SGA.Application.DTOs.Transportation
         int Id,
         int InstitutionId,
         int RouteId,
+        string? RouteName,
         int DriverId,
         int BusId,
         string Status,

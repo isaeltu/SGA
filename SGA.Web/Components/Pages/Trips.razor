@@ -53,7 +53,7 @@
         <article class="sga-card">
             <h3>Viaje @trip.Id</h3>
             <p>Estado: @trip.Status</p>
-            <p>Bus: @trip.BusId | Chofer: @trip.DriverId | Ruta: @trip.RouteId</p>
+            <p>Bus: @trip.BusId | Chofer: @trip.DriverId | Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName)</p>
             <p>Salida: @trip.ScheduledDepartureTime | Llegada: @trip.ScheduledArrivalTime</p>
             <p>Disponibles: @trip.AvailableSeats</p>
         </article>

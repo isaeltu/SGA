@@ -10,6 +10,22 @@
 
     <div class="sga-two-col">
         <article class="sga-card">
+            <h3>Crear institucion</h3>
+            <div class="sga-form-grid compact">
+                <label>Codigo</label>
+                <input @bind="institutionCode" class="sga-input" />
+
+                <label>Nombre</label>
+                <input @bind="institutionName" class="sga-input" />
+
+                <label>Creado por</label>
+                <input @bind="createdBy" class="sga-input" />
+
+                <button class="sga-btn" @onclick="CreateInstitutionAsync">Crear institucion</button>
+            </div>
+        </article>
+
+        <article class="sga-card">
             <h3>Crear rol</h3>
             <div class="sga-form-grid compact">
                 <label>Nombre del rol</label>
@@ -192,6 +208,8 @@
 </section>
 
 @code {
+    private string institutionCode = string.Empty;
+    private string institutionName = string.Empty;
     private string roleName = string.Empty;
     private string? roleDescription;
     private string permissionName = string.Empty;
@@ -243,6 +261,35 @@
             message = $"Rol creado con ID {id}.";
             roleName = string.Empty;
             roleDescription = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task CreateInstitutionAsync()
+    {
+        message = null;
+        if (string.IsNullOrWhiteSpace(institutionCode) || string.IsNullOrWhiteSpace(institutionName))
+        {
+            message = "El codigo y nombre de institucion son obligatorios.";
+            return;
+        }
+
+        try
+        {
+            var id = await ApiClient.CreateInstitutionAsync(
+                new SGA.Web.Models.CreateInstitutionRequest(
+                    institutionCode.Trim(),
+                    institutionName.Trim(),
+                    createdBy),
+                CancellationToken.None);
+
+            message = $"Institucion creada con ID {id}.";
+            institutionCode = string.Empty;
+            institutionName = string.Empty;
+            await LoadInstitutionsAsync();
         }
         catch (Exception ex)
         {

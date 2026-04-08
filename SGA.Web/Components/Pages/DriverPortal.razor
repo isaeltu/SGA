@@ -38,7 +38,7 @@
             <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
                 <h3>Viaje @trip.Id</h3>
                 <p>Estado: @trip.Status</p>
-                <p>Ruta: @trip.RouteId | Bus: @trip.BusId</p>
+                <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Bus: @trip.BusId</p>
                 <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
                 <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
             </article>

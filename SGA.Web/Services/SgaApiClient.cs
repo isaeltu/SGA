@@ -40,6 +40,22 @@ public sealed class SgaApiClient
     public Task<BusResponse?> GetBusByIdAsync(int busId, CancellationToken cancellationToken)
         => _httpClient.GetFromJsonAsync<BusResponse>($"api/buses/{busId}", cancellationToken);
 
+    public async Task<int> CreateRouteAsync(CreateRouteRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/routes", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyCollection<RouteResponse>?> GetRoutesAsync(int? institutionId, CancellationToken cancellationToken)
+    {
+        var url = institutionId.HasValue
+            ? $"api/routes?institutionId={institutionId.Value}"
+            : "api/routes";
+
+        return _httpClient.GetFromJsonAsync<IReadOnlyCollection<RouteResponse>>(url, cancellationToken);
+    }
+
     public async Task<int> CreateReservationAsync(CreateReservationRequest request, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync("api/reservations", request, cancellationToken).ConfigureAwait(false);
@@ -161,6 +177,15 @@ public sealed class SgaApiClient
         var response = await _httpClient.PostAsJsonAsync("api/users/drivers", request, cancellationToken).ConfigureAwait(false);
         await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
         return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyCollection<DriverLookupResponse>?> GetDriversAsync(int? institutionId, bool onlyAvailable, CancellationToken cancellationToken)
+    {
+        var url = institutionId.HasValue
+            ? $"api/users/drivers?institutionId={institutionId.Value}&onlyAvailable={onlyAvailable.ToString().ToLowerInvariant()}"
+            : $"api/users/drivers?onlyAvailable={onlyAvailable.ToString().ToLowerInvariant()}";
+
+        return _httpClient.GetFromJsonAsync<IReadOnlyCollection<DriverLookupResponse>>(url, cancellationToken);
     }
 
     public async Task<int> CreateEmployeeUserAsync(CreateEmployeeUserRequest request, CancellationToken cancellationToken)

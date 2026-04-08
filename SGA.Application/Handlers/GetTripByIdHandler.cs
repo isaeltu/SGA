@@ -8,10 +8,12 @@ namespace SGA.Application.Handlers
     public sealed class GetTripByIdHandler : IRequestHandler<GetTripByIdQuery, TripDto?>
     {
         private readonly ITripRepository _tripRepository;
+        private readonly IRouteRepository _routeRepository;
 
-        public GetTripByIdHandler(ITripRepository tripRepository)
+        public GetTripByIdHandler(ITripRepository tripRepository, IRouteRepository routeRepository)
         {
             _tripRepository = tripRepository;
+            _routeRepository = routeRepository;
         }
 
         public async Task<TripDto?> Handle(GetTripByIdQuery request, CancellationToken cancellationToken)
@@ -22,10 +24,13 @@ namespace SGA.Application.Handlers
                 return null;
             }
 
+            var route = await _routeRepository.GetByIdAsync(trip.RouteId, cancellationToken).ConfigureAwait(false);
+
             return new TripDto(
                 trip.Id,
                 trip.InstitutionId,
                 trip.RouteId,
+                route?.Name,
                 trip.DriverId,
                 trip.BusId,
                 trip.Status.ToString(),

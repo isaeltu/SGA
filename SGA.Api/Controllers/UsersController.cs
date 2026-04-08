@@ -57,6 +57,13 @@ public class UsersController : ControllerBase
         return Ok(id);
     }
 
+    [HttpGet("drivers")]
+    public async Task<IActionResult> GetDrivers([FromQuery] int? institutionId, [FromQuery] bool onlyAvailable = true, CancellationToken cancellationToken = default)
+    {
+        var drivers = await _mediator.Send(new GetDriversQuery(institutionId, onlyAvailable), cancellationToken);
+        return Ok(drivers);
+    }
+
     [HttpPost("employees")]
     public async Task<ActionResult<int>> CreateEmployee([FromBody] CreateEmployeeCommand command, CancellationToken cancellationToken)
     {
