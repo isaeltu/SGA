@@ -97,7 +97,7 @@ public class AuthController : ControllerBase
             return Ok(new MasterOtpRequestResponse("Codigo enviado al correo de seguridad del master admin.", null));
         }
 
-        if (_environment.IsDevelopment() && IsDevOtpFallbackEnabled())
+        if (IsDevOtpFallbackEnabled())
         {
             _logger.LogWarning("SMTP is not configured. Returning development OTP fallback.");
             return Ok(new MasterOtpRequestResponse("SMTP no configurado. Usando codigo temporal de desarrollo.", otp));
