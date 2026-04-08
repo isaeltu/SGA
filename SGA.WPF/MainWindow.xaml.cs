@@ -119,10 +119,10 @@ namespace SGA.WPF
 
             try
             {
-                var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-                if (File.Exists(configPath))
+                var configPath = System.IO.Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+                if (System.IO.File.Exists(configPath))
                 {
-                    var json = File.ReadAllText(configPath);
+                    var json = System.IO.File.ReadAllText(configPath);
                     using var document = JsonDocument.Parse(json);
                     if (document.RootElement.TryGetProperty("Resilience", out var section))
                     {
