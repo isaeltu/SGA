@@ -58,7 +58,7 @@
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Driver))
         {
-            Navigation.NavigateTo("/login-portal?portal=driver", true);
+            Navigation.NavigateTo("/login-portal?portal=driver");
             return;
         }
 

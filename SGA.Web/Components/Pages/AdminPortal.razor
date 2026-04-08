@@ -174,7 +174,7 @@
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Admin))
         {
-            Navigation.NavigateTo("/login-portal?portal=admin", true);
+            Navigation.NavigateTo("/login-portal?portal=admin");
             return;
         }
 

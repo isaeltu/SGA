@@ -90,7 +90,7 @@
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Operator))
         {
-            Navigation.NavigateTo("/login-portal?portal=operador", true);
+            Navigation.NavigateTo("/login-portal?portal=operador");
             return;
         }
 
