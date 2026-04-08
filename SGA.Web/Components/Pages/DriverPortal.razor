@@ -53,17 +53,28 @@
     private int selectedTripId;
     private string modifiedBy = "web-driver";
     private string? message;
+    private bool redirectToLogin;
 
     protected override async Task OnInitializedAsync()
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Driver))
         {
-            Navigation.NavigateTo("/login-portal?portal=driver");
+            redirectToLogin = true;
             return;
         }
 
         var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
         institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && redirectToLogin)
+        {
+            Navigation.NavigateTo("/login-portal?portal=driver");
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task LoadTripsAsync()

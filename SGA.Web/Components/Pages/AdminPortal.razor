@@ -169,12 +169,13 @@
     private string userType = "operator";
     private readonly NewUserForm newUser = new();
     private string? message;
+    private bool redirectToLogin;
 
     protected override void OnInitialized()
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Admin))
         {
-            Navigation.NavigateTo("/login-portal?portal=admin");
+            redirectToLogin = true;
             return;
         }
 
@@ -183,6 +184,16 @@
             newUser.InstitutionId = Session.InstitutionId;
             userType = "operator";
         }
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && redirectToLogin)
+        {
+            Navigation.NavigateTo("/login-portal?portal=admin");
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task CreateRoleAsync()

@@ -83,6 +83,7 @@
     private string createdBy = "web-operator";
     private string modifiedBy = "web-operator";
     private string? message;
+    private bool redirectToLogin;
 
     private readonly TripCreateForm createModel = new();
 
@@ -90,7 +91,7 @@
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Operator))
         {
-            Navigation.NavigateTo("/login-portal?portal=operador");
+            redirectToLogin = true;
             return;
         }
 
@@ -110,6 +111,16 @@
             : $"{institution.Name} ({institution.Code})";
 
         await LoadTripsAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && redirectToLogin)
+        {
+            Navigation.NavigateTo("/login-portal?portal=operador");
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task LoadTripsAsync()
