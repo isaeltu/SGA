@@ -47,8 +47,15 @@ public class AuthController : ControllerBase
 
         var person = await _dbContext.Persons
             .AsNoTracking()
+            .Where(p => p.Email == emailValueObject)
+            .Select(p => new
+            {
+                p.Id,
+                p.InstitutionId,
+                p.FirstName,
+                p.LastName
+            })
             .FirstOrDefaultAsync(
-                p => p.Email == emailValueObject,
                 cancellationToken)
             .ConfigureAwait(false);
 
