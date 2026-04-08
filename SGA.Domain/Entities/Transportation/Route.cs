@@ -46,5 +46,30 @@ namespace SGA.Domain.Entities.Transportation
             IsActive = false;
             SetModificationInfo(modifiedBy);
         }
+
+        public void Activate(string modifiedBy)
+        {
+            if (IsActive)
+                return;
+
+            IsActive = true;
+            SetModificationInfo(modifiedBy);
+        }
+
+        public void UpdateDetails(
+            string name,
+            string origin,
+            string destination,
+            decimal distanceKm,
+            int estimatedDurationMinutes,
+            string modifiedBy)
+        {
+            Name = name;
+            Origin = origin;
+            Destination = destination;
+            DistanceKm = distanceKm;
+            EstimatedDurationMinutes = estimatedDurationMinutes;
+            SetModificationInfo(modifiedBy);
+        }
     }
 }

@@ -49,4 +49,11 @@ public class InstitutionsController : ControllerBase
         var institutions = await _mediator.Send(new GetInstitutionsQuery(), cancellationToken);
         return Ok(institutions);
     }
+
+    [HttpDelete("{institutionId:int}")]
+    public async Task<IActionResult> Delete(int institutionId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteInstitutionCommand(institutionId), cancellationToken);
+        return NoContent();
+    }
 }

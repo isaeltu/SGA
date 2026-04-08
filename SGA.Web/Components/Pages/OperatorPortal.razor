@@ -94,6 +94,73 @@
 
             <button class="sga-btn alt" @onclick="CreateRouteAsync">Registrar ruta</button>
         </div>
+
+        <div class="sga-form-grid compact" style="margin-top:1rem;">
+            <label>Ruta seleccionada para editar</label>
+            <select class="sga-input" @bind="selectedRouteId" @bind:after="LoadSelectedRouteForEditAsync">
+                <option value="0">Selecciona una ruta</option>
+                @foreach (var route in routes)
+                {
+                    <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
+                }
+            </select>
+
+            @if (selectedRouteId > 0)
+            {
+                <label>Nombre (edicion)</label>
+                <input @bind="routeEditModel.Name" class="sga-input" />
+
+                <label>Origen (edicion)</label>
+                <input @bind="routeEditModel.Origin" class="sga-input" />
+
+                <label>Destino (edicion)</label>
+                <input @bind="routeEditModel.Destination" class="sga-input" />
+
+                <label>Distancia (km)</label>
+                <input @bind="routeEditModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+
+                <label>Duracion estimada (min)</label>
+                <input @bind="routeEditModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+
+                <label>Activa</label>
+                <input @bind="routeEditModel.IsActive" type="checkbox" class="sga-input" />
+
+                <button class="sga-btn alt" @onclick="UpdateRouteAsync">Actualizar ruta</button>
+                <button class="sga-btn danger" @onclick="DeleteSelectedRouteAsync">Eliminar ruta</button>
+            }
+        </div>
+
+        <div class="sga-inline-actions operator-actions" style="margin-top:1rem;">
+            <button class="sga-btn alt" @onclick="LoadRoutesAsync">Recargar rutas</button>
+            <span>Total rutas: @routes.Count</span>
+        </div>
+
+        @if (routes.Count > 0)
+        {
+            <table class="sga-table" style="margin-top:1rem;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
+                        <th>Activa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var route in routes)
+                    {
+                        <tr>
+                            <td>@route.Id</td>
+                            <td>@route.Name</td>
+                            <td>@route.Origin</td>
+                            <td>@route.Destination</td>
+                            <td>@(route.IsActive ? "Si" : "No")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </article>
 
     <article class="sga-card">
@@ -123,6 +190,31 @@
                 <button class="sga-btn alt" @onclick="LoadDriversAsync">Cargar drivers</button>
                 <button class="sga-btn alt" @onclick="ApplySelectedDriver">Autocompletar Driver ID</button>
             </div>
+
+            @if (drivers.Count > 0)
+            {
+                <table class="sga-table" style="margin-top:0.5rem;">
+                    <thead>
+                        <tr>
+                            <th>Driver ID</th>
+                            <th>Nombre</th>
+                            <th>Licencia</th>
+                            <th>Disponible</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var driver in drivers)
+                        {
+                            <tr>
+                                <td>@driver.DriverId</td>
+                                <td>@driver.FullName</td>
+                                <td>@driver.DriverLicense</td>
+                                <td>@(driver.IsAvailable ? "Si" : "No")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
 
             <label>Autobus</label>
             <select class="sga-input" @bind="createModel.BusId">
@@ -192,6 +284,7 @@
     private int selectedInstitutionId;
     private int selectedTripId;
     private int selectedDriverId;
+    private int selectedRouteId;
     private string institutionLabel = "No asignada";
     private string createdBy = "web-operator";
     private string modifiedBy = "web-operator";
@@ -201,6 +294,7 @@
     private readonly TripCreateForm createModel = new();
     private readonly BusCreateForm busModel = new();
     private readonly RouteCreateForm routeModel = new();
+    private readonly RouteEditForm routeEditModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -210,9 +304,18 @@
             return;
         }
 
-        var institutionResponse = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
-        institutions = institutionResponse?.Where(i => i.IsActive).OrderBy(i => i.Name).ToList()
-            ?? new List<SGA.Web.Models.InstitutionResponse>();
+        try
+        {
+            var institutionResponse = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+            institutions = institutionResponse?.Where(i => i.IsActive).OrderBy(i => i.Name).ToList()
+                ?? new List<SGA.Web.Models.InstitutionResponse>();
+        }
+        catch (Exception ex)
+        {
+            message = $"No se pudo cargar instituciones: {ex.Message}";
+            institutions = new List<SGA.Web.Models.InstitutionResponse>();
+            return;
+        }
 
         selectedInstitutionId = Session.InstitutionId;
         modifiedBy = string.IsNullOrWhiteSpace(Session.Email) ? modifiedBy : Session.Email;
@@ -245,8 +348,16 @@
             return;
         }
 
-        var response = await ApiClient.GetTripsAsync(selectedInstitutionId, false, CancellationToken.None);
-        trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+        try
+        {
+            var response = await ApiClient.GetTripsAsync(selectedInstitutionId, false, CancellationToken.None);
+            trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+        }
+        catch (Exception ex)
+        {
+            trips.Clear();
+            message = $"No se pudieron cargar viajes: {ex.Message}";
+        }
     }
 
     private async Task LoadRoutesAsync()
@@ -257,8 +368,20 @@
             return;
         }
 
-        var response = await ApiClient.GetRoutesAsync(selectedInstitutionId, CancellationToken.None);
-        routes = response?.Where(x => x.IsActive).OrderBy(x => x.Name).ToList() ?? new List<SGA.Web.Models.RouteResponse>();
+        try
+        {
+            var response = await ApiClient.GetRoutesAsync(selectedInstitutionId, CancellationToken.None);
+            routes = response?.Where(x => x.IsActive).OrderBy(x => x.Name).ToList() ?? new List<SGA.Web.Models.RouteResponse>();
+            if (routes.Count > 0)
+            {
+                message = $"Se cargaron {routes.Count} rutas.";
+            }
+        }
+        catch (Exception ex)
+        {
+            routes.Clear();
+            message = $"No se pudieron cargar rutas: {ex.Message}";
+        }
     }
 
     private async Task LoadBusesAsync()
@@ -269,8 +392,16 @@
             return;
         }
 
-        var response = await ApiClient.GetBusesAsync(CancellationToken.None);
-        buses = response?.Where(x => x.InstitutionId == selectedInstitutionId).ToList() ?? new List<SGA.Web.Models.BusResponse>();
+        try
+        {
+            var response = await ApiClient.GetBusesAsync(CancellationToken.None);
+            buses = response?.Where(x => x.InstitutionId == selectedInstitutionId).ToList() ?? new List<SGA.Web.Models.BusResponse>();
+        }
+        catch (Exception ex)
+        {
+            buses.Clear();
+            message = $"No se pudieron cargar autobuses: {ex.Message}";
+        }
     }
 
     private async Task LoadDriversAsync()
@@ -281,12 +412,24 @@
             return;
         }
 
-        var response = await ApiClient.GetDriversAsync(selectedInstitutionId, false, CancellationToken.None);
-        drivers = response?.OrderBy(x => x.FullName).ToList() ?? new List<SGA.Web.Models.DriverLookupResponse>();
-
-        if (drivers.Count == 0)
+        try
         {
-            message = "No hay drivers disponibles para esta institucion.";
+            var response = await ApiClient.GetDriversAsync(selectedInstitutionId, false, CancellationToken.None);
+            drivers = response?.OrderBy(x => x.FullName).ToList() ?? new List<SGA.Web.Models.DriverLookupResponse>();
+
+            if (drivers.Count == 0)
+            {
+                message = "No hay drivers disponibles para esta institucion.";
+            }
+            else
+            {
+                message = $"Se cargaron {drivers.Count} drivers.";
+            }
+        }
+        catch (Exception ex)
+        {
+            drivers.Clear();
+            message = $"No se pudieron cargar drivers: {ex.Message}";
         }
     }
 
@@ -382,10 +525,94 @@
 
             message = $"Ruta registrada con ID {routeId}.";
             await LoadRoutesAsync();
+            selectedRouteId = routeId;
+            await LoadSelectedRouteForEditAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+        }
+    }
+
+    private async Task LoadSelectedRouteForEditAsync()
+    {
+        if (selectedRouteId <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var route = await ApiClient.GetRouteByIdAsync(selectedRouteId, CancellationToken.None);
+            if (route is null)
+            {
+                message = "No se pudo cargar la ruta seleccionada.";
+                return;
+            }
+
+            routeEditModel.Name = route.Name;
+            routeEditModel.Origin = route.Origin;
+            routeEditModel.Destination = route.Destination;
+            routeEditModel.DistanceKm = route.DistanceKm;
+            routeEditModel.EstimatedDurationMinutes = route.EstimatedDurationMinutes;
+            routeEditModel.IsActive = route.IsActive;
+        }
+        catch (Exception ex)
+        {
+            message = $"No se pudo cargar la ruta para editar: {ex.Message}";
+        }
+    }
+
+    private async Task UpdateRouteAsync()
+    {
+        if (selectedRouteId <= 0)
+        {
+            message = "Selecciona una ruta para actualizar.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.UpdateRouteAsync(
+                new SGA.Web.Models.UpdateRouteRequest(
+                    selectedRouteId,
+                    selectedInstitutionId,
+                    routeEditModel.Name.Trim(),
+                    routeEditModel.Origin.Trim(),
+                    routeEditModel.Destination.Trim(),
+                    routeEditModel.DistanceKm,
+                    routeEditModel.EstimatedDurationMinutes,
+                    routeEditModel.IsActive,
+                    modifiedBy),
+                CancellationToken.None);
+
+            message = "Ruta actualizada correctamente.";
+            await LoadRoutesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"No se pudo actualizar la ruta: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteSelectedRouteAsync()
+    {
+        if (selectedRouteId <= 0)
+        {
+            message = "Selecciona una ruta para eliminar.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.DeleteRouteAsync(selectedRouteId, CancellationToken.None);
+            message = "Ruta eliminada correctamente.";
+            selectedRouteId = 0;
+            await LoadRoutesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"No se pudo eliminar la ruta: {ex.Message}";
         }
     }
 
@@ -433,7 +660,14 @@
 
     private async Task OnInstitutionChangedAsync()
     {
-        await LoadInstitutionContextAsync();
+        try
+        {
+            await LoadInstitutionContextAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"No se pudo cambiar el contexto de institucion: {ex.Message}";
+        }
     }
 
     private async Task LoadInstitutionContextAsync()
@@ -448,10 +682,18 @@
             return;
         }
 
-        var institution = await ApiClient.GetInstitutionByIdAsync(selectedInstitutionId, CancellationToken.None);
-        institutionLabel = institution is null
-            ? $"Institucion ID {selectedInstitutionId}"
-            : $"{institution.Name} ({institution.Code})";
+        try
+        {
+            var institution = await ApiClient.GetInstitutionByIdAsync(selectedInstitutionId, CancellationToken.None);
+            institutionLabel = institution is null
+                ? $"Institucion ID {selectedInstitutionId}"
+                : $"{institution.Name} ({institution.Code})";
+        }
+        catch (Exception ex)
+        {
+            institutionLabel = $"Institucion ID {selectedInstitutionId}";
+            message = $"No se pudo cargar la institucion seleccionada: {ex.Message}";
+        }
 
         await LoadRoutesAsync();
         await LoadBusesAsync();
@@ -531,5 +773,15 @@
         public string Destination { get; set; } = string.Empty;
         public decimal DistanceKm { get; set; } = 1;
         public int EstimatedDurationMinutes { get; set; } = 20;
+    }
+
+    private sealed class RouteEditForm
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public decimal DistanceKm { get; set; } = 1;
+        public int EstimatedDurationMinutes { get; set; } = 20;
+        public bool IsActive { get; set; } = true;
     }
 }

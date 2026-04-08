@@ -29,4 +29,30 @@ public class RoutesController : ControllerBase
         var routes = await _mediator.Send(new GetRoutesQuery(institutionId), cancellationToken);
         return Ok(routes);
     }
+
+    [HttpGet("{routeId:int}")]
+    public async Task<IActionResult> GetById(int routeId, CancellationToken cancellationToken)
+    {
+        var route = await _mediator.Send(new GetRouteByIdQuery(routeId), cancellationToken);
+        if (route is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(route);
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> Update([FromBody] UpdateRouteCommand command, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{routeId:int}")]
+    public async Task<IActionResult> Delete(int routeId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteRouteCommand(routeId), cancellationToken);
+        return NoContent();
+    }
 }

@@ -175,7 +175,12 @@
     <article class="sga-card">
         <h3>Instituciones registradas</h3>
         <p>Puedes cargar el listado completo para validar IDs y nombres antes de crear usuarios.</p>
-        <button class="sga-btn alt" @onclick="LoadInstitutionsAsync">Obtener todas las instituciones</button>
+        <div class="sga-inline-actions operator-actions">
+            <button class="sga-btn alt" @onclick="LoadInstitutionsAsync">Obtener todas las instituciones</button>
+            <input class="sga-input" type="number" @bind="selectedInstitutionId" placeholder="Institution ID" />
+            <button class="sga-btn alt" @onclick="LoadInstitutionByIdAsync">Buscar por ID</button>
+            <button class="sga-btn danger" @onclick="DeleteSelectedInstitutionAsync">Eliminar seleccionada</button>
+        </div>
 
         @if (institutions.Count > 0)
         {
@@ -191,7 +196,7 @@
                 <tbody>
                     @foreach (var institution in institutions)
                     {
-                        <tr>
+                        <tr @onclick="() => SelectInstitution(institution)">
                             <td>@institution.Id</td>
                             <td>@institution.Code</td>
                             <td>@institution.Name</td>
@@ -200,6 +205,75 @@
                     }
                 </tbody>
             </table>
+        }
+
+        @if (selectedInstitutionId > 0)
+        {
+            <div class="sga-form-grid compact" style="margin-top:1rem;">
+                <label>Codigo (edicion)</label>
+                <input class="sga-input" @bind="institutionEditCode" />
+                <label>Nombre (edicion)</label>
+                <input class="sga-input" @bind="institutionEditName" />
+                <label>Activa</label>
+                <input class="sga-input" type="checkbox" @bind="institutionEditIsActive" />
+                <button class="sga-btn alt" @onclick="UpdateSelectedInstitutionAsync">Actualizar institucion</button>
+            </div>
+        }
+    </article>
+
+    <article class="sga-card">
+        <h3>Buses registrados</h3>
+        <div class="sga-inline-actions operator-actions">
+            <button class="sga-btn alt" @onclick="LoadBusesAsync">Obtener todos los buses</button>
+            <input class="sga-input" type="number" @bind="selectedBusId" placeholder="Bus ID" />
+            <button class="sga-btn alt" @onclick="LoadBusByIdAsync">Buscar por ID</button>
+            <button class="sga-btn danger" @onclick="DeleteSelectedBusAsync">Eliminar seleccionado</button>
+        </div>
+
+        @if (buses.Count > 0)
+        {
+            <table class="sga-table" style="margin-top:1rem;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Institucion</th>
+                        <th>Placa</th>
+                        <th>Modelo</th>
+                        <th>Anio</th>
+                        <th>Capacidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bus in buses)
+                    {
+                        <tr @onclick="() => SelectBus(bus)">
+                            <td>@bus.Id</td>
+                            <td>@bus.InstitutionId</td>
+                            <td>@bus.LicensePlate</td>
+                            <td>@bus.Model</td>
+                            <td>@bus.Year</td>
+                            <td>@bus.Capacity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (selectedBusId > 0)
+        {
+            <div class="sga-form-grid compact" style="margin-top:1rem;">
+                <label>Institucion ID</label>
+                <input class="sga-input" type="number" @bind="busEditInstitutionId" />
+                <label>Placa</label>
+                <input class="sga-input" @bind="busEditLicensePlate" />
+                <label>Modelo</label>
+                <input class="sga-input" @bind="busEditModel" />
+                <label>Anio</label>
+                <input class="sga-input" type="number" @bind="busEditYear" />
+                <label>Capacidad</label>
+                <input class="sga-input" type="number" @bind="busEditCapacity" />
+                <button class="sga-btn alt" @onclick="UpdateSelectedBusAsync">Actualizar bus</button>
+            </div>
         }
     </article>
 
@@ -260,6 +334,17 @@
     private readonly NewUserForm newUser = new();
     private readonly QuickDriverForm quickDriver = new();
     private List<SGA.Web.Models.InstitutionResponse> institutions = new();
+    private List<SGA.Web.Models.BusResponse> buses = new();
+    private int selectedInstitutionId;
+    private string institutionEditCode = string.Empty;
+    private string institutionEditName = string.Empty;
+    private bool institutionEditIsActive = true;
+    private int selectedBusId;
+    private int busEditInstitutionId;
+    private string busEditLicensePlate = string.Empty;
+    private string busEditModel = string.Empty;
+    private int busEditYear = DateTime.Today.Year;
+    private int busEditCapacity = 40;
     private string? message;
     private bool redirectToLogin;
 
@@ -522,6 +607,203 @@
             message = institutions.Count == 0
                 ? "No hay instituciones registradas."
                 : $"Se cargaron {institutions.Count} instituciones.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task LoadInstitutionByIdAsync()
+    {
+        message = null;
+        if (selectedInstitutionId <= 0)
+        {
+            message = "Ingresa un Institution ID valido.";
+            return;
+        }
+
+        try
+        {
+            var institution = await ApiClient.GetInstitutionByIdAsync(selectedInstitutionId, CancellationToken.None);
+            institutions = institution is null
+                ? new List<SGA.Web.Models.InstitutionResponse>()
+                : new List<SGA.Web.Models.InstitutionResponse> { institution };
+
+            if (institution is null)
+            {
+                message = "No se encontro la institucion.";
+                return;
+            }
+
+            SelectInstitution(institution);
+            message = "Institucion cargada por ID.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private void SelectInstitution(SGA.Web.Models.InstitutionResponse institution)
+    {
+        selectedInstitutionId = institution.Id;
+        institutionEditCode = institution.Code;
+        institutionEditName = institution.Name;
+        institutionEditIsActive = institution.IsActive;
+    }
+
+    private async Task UpdateSelectedInstitutionAsync()
+    {
+        message = null;
+        if (selectedInstitutionId <= 0)
+        {
+            message = "Selecciona una institucion para actualizar.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.UpdateInstitutionAsync(
+                new SGA.Web.Models.UpdateInstitutionRequest(
+                    selectedInstitutionId,
+                    institutionEditCode.Trim(),
+                    institutionEditName.Trim(),
+                    institutionEditIsActive,
+                    createdBy),
+                CancellationToken.None);
+
+            message = "Institucion actualizada correctamente.";
+            await LoadInstitutionsAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task DeleteSelectedInstitutionAsync()
+    {
+        message = null;
+        if (selectedInstitutionId <= 0)
+        {
+            message = "Selecciona una institucion para eliminar.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.DeleteInstitutionAsync(selectedInstitutionId, CancellationToken.None);
+            message = "Institucion eliminada correctamente.";
+            selectedInstitutionId = 0;
+            await LoadInstitutionsAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task LoadBusesAsync()
+    {
+        message = null;
+        try
+        {
+            var response = await ApiClient.GetBusesAsync(CancellationToken.None);
+            buses = response?.OrderBy(b => b.InstitutionId).ThenBy(b => b.Id).ToList() ?? new List<SGA.Web.Models.BusResponse>();
+            message = buses.Count == 0 ? "No hay buses registrados." : $"Se cargaron {buses.Count} buses.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task LoadBusByIdAsync()
+    {
+        message = null;
+        if (selectedBusId <= 0)
+        {
+            message = "Ingresa un Bus ID valido.";
+            return;
+        }
+
+        try
+        {
+            var bus = await ApiClient.GetBusByIdAsync(selectedBusId, CancellationToken.None);
+            buses = bus is null ? new List<SGA.Web.Models.BusResponse>() : new List<SGA.Web.Models.BusResponse> { bus };
+
+            if (bus is null)
+            {
+                message = "No se encontro el bus.";
+                return;
+            }
+
+            SelectBus(bus);
+            message = "Bus cargado por ID.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private void SelectBus(SGA.Web.Models.BusResponse bus)
+    {
+        selectedBusId = bus.Id;
+        busEditInstitutionId = bus.InstitutionId;
+        busEditLicensePlate = bus.LicensePlate;
+        busEditModel = bus.Model;
+        busEditYear = bus.Year;
+        busEditCapacity = bus.Capacity;
+    }
+
+    private async Task UpdateSelectedBusAsync()
+    {
+        message = null;
+        if (selectedBusId <= 0)
+        {
+            message = "Selecciona un bus para actualizar.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.UpdateBusAsync(
+                new SGA.Web.Models.UpdateBusRequest(
+                    selectedBusId,
+                    busEditInstitutionId,
+                    busEditLicensePlate.Trim(),
+                    busEditModel.Trim(),
+                    busEditYear,
+                    busEditCapacity,
+                    createdBy),
+                CancellationToken.None);
+
+            message = "Bus actualizado correctamente.";
+            await LoadBusesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task DeleteSelectedBusAsync()
+    {
+        message = null;
+        if (selectedBusId <= 0)
+        {
+            message = "Selecciona un bus para eliminar.";
+            return;
+        }
+
+        try
+        {
+            await ApiClient.DeleteBusAsync(selectedBusId, CancellationToken.None);
+            message = "Bus eliminado correctamente.";
+            selectedBusId = 0;
+            await LoadBusesAsync();
         }
         catch (Exception ex)
         {

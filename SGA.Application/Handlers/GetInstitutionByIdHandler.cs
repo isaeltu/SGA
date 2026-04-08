@@ -17,7 +17,7 @@ namespace SGA.Application.Handlers
         public async Task<InstitutionDto?> Handle(GetInstitutionByIdQuery request, CancellationToken cancellationToken)
         {
             var institution = await _institutionRepository.GetByIdAsync(request.InstitutionId, cancellationToken).ConfigureAwait(false);
-            if (institution is null)
+            if (institution is null || institution.IsDeleted)
             {
                 return null;
             }

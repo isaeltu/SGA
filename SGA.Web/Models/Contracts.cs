@@ -6,9 +6,11 @@ public sealed class ApiSettings
 }
 
 public sealed record CreateInstitutionRequest(string Code, string Name, string CreatedBy);
+public sealed record UpdateInstitutionRequest(int InstitutionId, string Code, string Name, bool IsActive, string ModifiedBy);
 public sealed record InstitutionResponse(int Id, string Code, string Name, bool IsActive);
 
 public sealed record CreateBusRequest(int InstitutionId, string LicensePlate, string Model, int Year, int Capacity, string CreatedBy);
+public sealed record UpdateBusRequest(int BusId, int InstitutionId, string LicensePlate, string Model, int Year, int Capacity, string ModifiedBy);
 public sealed record BusResponse(int Id, int InstitutionId, string LicensePlate, string Model, int Year, int Capacity, int AvailableSeats, string Status);
 
 public sealed record CreateRouteRequest(
@@ -28,6 +30,16 @@ public sealed record RouteResponse(
     decimal DistanceKm,
     int EstimatedDurationMinutes,
     bool IsActive);
+public sealed record UpdateRouteRequest(
+    int RouteId,
+    int InstitutionId,
+    string Name,
+    string Origin,
+    string Destination,
+    decimal DistanceKm,
+    int EstimatedDurationMinutes,
+    bool IsActive,
+    string ModifiedBy);
 
 public sealed record CreateReservationRequest(int TripId, int PersonId, int AuthorizationId, string CreatedBy);
 public sealed record CreateGuestReservationRequest(

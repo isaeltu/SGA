@@ -48,4 +48,11 @@ public class BusesController : ControllerBase
         await _mediator.Send(new DeleteBusCommand(busId), cancellationToken);
         return NoContent();
     }
+
+    [HttpPut]
+    public async Task<IActionResult> Update([FromBody] UpdateBusCommand command, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
 }

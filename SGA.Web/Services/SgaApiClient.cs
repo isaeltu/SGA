@@ -27,6 +27,18 @@ public sealed class SgaApiClient
     public Task<IReadOnlyCollection<InstitutionResponse>?> GetInstitutionsAsync(CancellationToken cancellationToken)
         => _httpClient.GetFromJsonAsync<IReadOnlyCollection<InstitutionResponse>>("api/institutions", cancellationToken);
 
+    public async Task UpdateInstitutionAsync(UpdateInstitutionRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PutAsJsonAsync("api/institutions", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteInstitutionAsync(int institutionId, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.DeleteAsync($"api/institutions/{institutionId}", cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<int> CreateBusAsync(CreateBusRequest request, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync("api/buses", request, cancellationToken).ConfigureAwait(false);
@@ -46,6 +58,12 @@ public sealed class SgaApiClient
         await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task UpdateBusAsync(UpdateBusRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PutAsJsonAsync("api/buses", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<int> CreateRouteAsync(CreateRouteRequest request, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync("api/routes", request, cancellationToken).ConfigureAwait(false);
@@ -60,6 +78,21 @@ public sealed class SgaApiClient
             : "api/routes";
 
         return _httpClient.GetFromJsonAsync<IReadOnlyCollection<RouteResponse>>(url, cancellationToken);
+    }
+
+    public Task<RouteResponse?> GetRouteByIdAsync(int routeId, CancellationToken cancellationToken)
+        => _httpClient.GetFromJsonAsync<RouteResponse>($"api/routes/{routeId}", cancellationToken);
+
+    public async Task UpdateRouteAsync(UpdateRouteRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PutAsJsonAsync("api/routes", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteRouteAsync(int routeId, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.DeleteAsync($"api/routes/{routeId}", cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<int> CreateReservationAsync(CreateReservationRequest request, CancellationToken cancellationToken)

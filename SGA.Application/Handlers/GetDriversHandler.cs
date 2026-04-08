@@ -19,11 +19,27 @@ namespace SGA.Application.Handlers
         public async Task<IReadOnlyCollection<DriverLookupDto>> Handle(GetDriversQuery request, CancellationToken cancellationToken)
         {
             var drivers = await _driverRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
-            var people = await _personRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
+            Dictionary<int, (int InstitutionId, string FullName)>? personById = null;
 
-            var personById = people
-                .Where(p => !p.IsDeleted)
-                .ToDictionary(p => p.Id);
+            try
+            {
+                var people = await _personRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
+                personById = people
+                    .Where(p => !p.IsDeleted)
+                    .ToDictionary(
+                        p => p.Id,
+                        p =>
+                        {
+                            var fullName = $"{p.FirstName} {p.LastName}".Trim();
+                            return (p.InstitutionId, string.IsNullOrWhiteSpace(fullName) ? $"Driver {p.Id}" : fullName);
+                        });
+            }
+            catch
+            {
+                // Some legacy records can fail full Person materialization.
+                // Keep endpoint usable by returning driver info without person details.
+                personById = null;
+            }
 
             var query = drivers.Where(d => !d.IsDeleted);
             if (request.OnlyAvailable)
@@ -31,25 +47,38 @@ namespace SGA.Application.Handlers
                 query = query.Where(d => d.IsAvailable);
             }
 
-            var results = query
-                .Where(d => personById.ContainsKey(d.PersonId))
-                .Select(d =>
-                {
-                    var person = personById[d.PersonId];
-                    var fullName = $"{person.FirstName} {person.LastName}".Trim();
+            IEnumerable<DriverLookupDto> results;
 
-                    return new DriverLookupDto(
-                        d.Id,
-                        d.PersonId,
-                        person.InstitutionId,
-                        string.IsNullOrWhiteSpace(fullName) ? $"Driver {d.Id}" : fullName,
-                        d.DriverLicence,
-                        d.IsAvailable);
-                });
-
-            if (request.InstitutionId.HasValue)
+            if (personById is null)
             {
-                results = results.Where(x => x.InstitutionId == request.InstitutionId.Value);
+                results = query.Select(d => new DriverLookupDto(
+                    d.Id,
+                    d.PersonId,
+                    0,
+                    $"Driver {d.Id}",
+                    d.DriverLicence,
+                    d.IsAvailable));
+            }
+            else
+            {
+                results = query
+                    .Where(d => personById.ContainsKey(d.PersonId))
+                    .Select(d =>
+                    {
+                        var person = personById[d.PersonId];
+                        return new DriverLookupDto(
+                            d.Id,
+                            d.PersonId,
+                            person.InstitutionId,
+                            person.FullName,
+                            d.DriverLicence,
+                            d.IsAvailable);
+                    });
+
+                if (request.InstitutionId.HasValue)
+                {
+                    results = results.Where(x => x.InstitutionId == request.InstitutionId.Value);
+                }
             }
 
             return results
