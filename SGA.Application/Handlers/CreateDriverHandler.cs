@@ -18,10 +18,16 @@ namespace SGA.Application.Handlers
 
         public async Task<int> Handle(CreateDriverCommand request, CancellationToken cancellationToken)
         {
-            var personExists = await _personRepository.ExistsByIdAsync(request.PersonId, cancellationToken).ConfigureAwait(false);
-            if (!personExists)
+            var personLookup = await _personRepository.GetDriverLookupByPersonIdAsync(request.PersonId, cancellationToken).ConfigureAwait(false);
+            if (personLookup is null || personLookup.IsDeleted)
             {
                 throw new KeyNotFoundException($"Person with id {request.PersonId} was not found.");
+            }
+
+            var existingDriver = await _driverRepository.GetByPersonIdAsync(request.PersonId, cancellationToken).ConfigureAwait(false);
+            if (existingDriver is not null)
+            {
+                return existingDriver.Id;
             }
 
             var driver = new Driver(request.PersonId, request.DriverLicense, request.LicenseExpirationDate)

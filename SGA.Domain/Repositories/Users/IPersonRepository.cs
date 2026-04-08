@@ -8,5 +8,6 @@ namespace SGA.Domain.Repositories.Users
         Task<bool> ExistsByIdAsync(int personId, CancellationToken cancellationToken = default);
         Task<Person?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
         Task<Person?> GetByCedulaAsync(string cedula, CancellationToken cancellationToken = default);
+        Task<DriverPersonLookup?> GetDriverLookupByPersonIdAsync(int personId, CancellationToken cancellationToken = default);
     }
 }

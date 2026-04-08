@@ -31,24 +31,23 @@ namespace SGA.Application.Handlers
             foreach (var driver in query)
             {
                 try
-                    {
-                    var person = await _personRepository.GetByIdAsync(driver.PersonId, cancellationToken).ConfigureAwait(false);
-                    if (person is null || person.IsDeleted)
-                    {
-                        continue;
-                    }
-
-                    if (request.InstitutionId.HasValue && person.InstitutionId != request.InstitutionId.Value)
+                {
+                    var personLookup = await _personRepository.GetDriverLookupByPersonIdAsync(driver.PersonId, cancellationToken).ConfigureAwait(false);
+                    if (personLookup is null || personLookup.IsDeleted)
                     {
                         continue;
                     }
 
-                    var fullName = $"{person.FirstName} {person.LastName}".Trim();
+                    if (request.InstitutionId.HasValue && personLookup.InstitutionId != request.InstitutionId.Value)
+                    {
+                        continue;
+                    }
+
                     results.Add(new DriverLookupDto(
                         driver.Id,
                         driver.PersonId,
-                        person.InstitutionId,
-                        string.IsNullOrWhiteSpace(fullName) ? $"Driver {driver.Id}" : fullName,
+                        personLookup.InstitutionId,
+                        personLookup.FullName,
                         driver.DriverLicence,
                         driver.IsAvailable));
                 }
