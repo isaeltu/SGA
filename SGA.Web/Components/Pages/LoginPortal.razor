@@ -1,0 +1,156 @@
+@page "/login-portal"
+@rendermode InteractiveServer
+@inject SGA.Web.Services.SgaApiClient ApiClient
+@inject SGA.Web.Services.PortalSessionService Session
+@inject NavigationManager Navigation
+
+<section class="sga-section">
+    <h1>Validar acceso por rol</h1>
+    <p class="lead">Ingresa tu correo para validar si tienes permiso de entrar al portal solicitado.</p>
+
+    <div class="sga-form-grid">
+        <label>Portal</label>
+        <select class="sga-input" @bind="portal">
+            <option value="admin">Administrador</option>
+            <option value="operador">Operador</option>
+            <option value="driver">Driver</option>
+        </select>
+
+        <label>Correo del usuario</label>
+        <input class="sga-input" @bind="email" type="email" placeholder="usuario@correo.com" />
+
+        @if (showMasterOtpStep)
+        {
+            <label>Codigo OTP (6 digitos)</label>
+            <input class="sga-input" @bind="masterOtpCode" maxlength="6" placeholder="123456" />
+            <button class="sga-btn alt" @onclick="VerifyMasterOtpAsync">Validar codigo master</button>
+        }
+        else
+        {
+            <button class="sga-btn" @onclick="LoginAsync">Entrar al portal</button>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="sga-alert">@message</p>
+    }
+</section>
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? portal { get; set; }
+
+    private string email = string.Empty;
+    private string masterOtpCode = string.Empty;
+    private bool showMasterOtpStep;
+    private string? message;
+
+    protected override void OnInitialized()
+    {
+        portal = NormalizePortal(portal);
+    }
+
+    private async Task LoginAsync()
+    {
+        message = null;
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            message = "El correo es obligatorio.";
+            return;
+        }
+
+        try
+        {
+            if (portal == "admin" && string.Equals(email.Trim(), "adm@isael.com", StringComparison.OrdinalIgnoreCase))
+            {
+                await ApiClient.RequestMasterOtpAsync(new SGA.Web.Models.MasterOtpRequest(email.Trim()), CancellationToken.None);
+                showMasterOtpStep = true;
+                message = "Se envio un codigo de 6 digitos al correo de seguridad del master admin.";
+                return;
+            }
+
+            var profile = await ApiClient.PortalLoginAsync(new SGA.Web.Models.PortalLoginRequest(email.Trim()), CancellationToken.None);
+            if (profile is null)
+            {
+                message = "No se pudo validar el perfil.";
+                return;
+            }
+
+            Session.SignIn(profile);
+
+            var targetRole = portal switch
+            {
+                "admin" => SGA.Web.Services.PortalRole.Admin,
+                "operador" => SGA.Web.Services.PortalRole.Operator,
+                "driver" => SGA.Web.Services.PortalRole.Driver,
+                _ => SGA.Web.Services.PortalRole.None
+            };
+
+            if (!Session.CanAccess(targetRole))
+            {
+                Session.SignOut();
+                message = "No tienes permiso para entrar a este portal.";
+                return;
+            }
+
+            Navigation.NavigateTo(portal switch
+            {
+                "admin" => "/portal/admin",
+                "operador" => "/portal/operador",
+                "driver" => "/portal/driver",
+                _ => "/acceso"
+            });
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task VerifyMasterOtpAsync()
+    {
+        message = null;
+
+        if (string.IsNullOrWhiteSpace(masterOtpCode) || masterOtpCode.Trim().Length != 6)
+        {
+            message = "Ingresa un codigo OTP valido de 6 digitos.";
+            return;
+        }
+
+        try
+        {
+            var profile = await ApiClient.VerifyMasterOtpAsync(
+                new SGA.Web.Models.MasterOtpVerifyRequest(email.Trim(), masterOtpCode.Trim()),
+                CancellationToken.None);
+
+            if (profile is null)
+            {
+                message = "No se pudo validar el codigo master.";
+                return;
+            }
+
+            Session.SignIn(profile);
+
+            if (!Session.CanAccess(SGA.Web.Services.PortalRole.Admin))
+            {
+                Session.SignOut();
+                message = "No tienes permiso para entrar a este portal.";
+                return;
+            }
+
+            Navigation.NavigateTo("/portal/admin");
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private static string NormalizePortal(string? value)
+    {
+        var normalized = value?.Trim().ToLowerInvariant();
+        return normalized is "admin" or "operador" or "driver" ? normalized : "admin";
+    }
+}

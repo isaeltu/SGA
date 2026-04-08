@@ -1,20 +1,16 @@
 @page "/portal/operador"
 @rendermode InteractiveServer
 @inject SGA.Web.Services.SgaApiClient ApiClient
+@inject SGA.Web.Services.PortalSessionService Session
+@inject NavigationManager Navigation
 
 <section class="sga-section">
     <h1>Portal Operador</h1>
     <p class="lead">Registra viajes y gestiona su estado para que aparezcan disponibles al cliente por institucion.</p>
 
     <div class="sga-form-grid">
-        <label>Institucion</label>
-        <select class="sga-input" @bind="selectedInstitutionId" @bind:after="OnInstitutionChangedAsync">
-            <option value="0">Selecciona una institucion</option>
-            @foreach (var institution in institutions)
-            {
-                <option value="@institution.Id">@institution.Name (@institution.Code)</option>
-            }
-        </select>
+        <label>Institucion asignada al operador</label>
+        <input class="sga-input" value="@institutionLabel" readonly />
     </div>
 
     <article class="sga-card">
@@ -80,10 +76,10 @@
 </section>
 
 @code {
-    private List<SGA.Web.Models.InstitutionResponse> institutions = new();
     private List<SGA.Web.Models.TripResponse> trips = new();
     private int selectedInstitutionId;
     private int selectedTripId;
+    private string institutionLabel = "No asignada";
     private string createdBy = "web-operator";
     private string modifiedBy = "web-operator";
     private string? message;
@@ -92,25 +88,28 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadInstitutionsAsync();
-    }
-
-    private async Task LoadInstitutionsAsync()
-    {
-        var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
-        institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
-    }
-
-    private async Task OnInstitutionChangedAsync()
-    {
-        if (selectedInstitutionId > 0)
+        if (!Session.CanAccess(SGA.Web.Services.PortalRole.Operator))
         {
-            await LoadTripsAsync();
+            Navigation.NavigateTo("/login-portal?portal=operador", true);
+            return;
         }
-        else
+
+        selectedInstitutionId = Session.InstitutionId;
+        modifiedBy = string.IsNullOrWhiteSpace(Session.Email) ? modifiedBy : Session.Email;
+        createdBy = string.IsNullOrWhiteSpace(Session.Email) ? createdBy : Session.Email;
+
+        if (selectedInstitutionId <= 0)
         {
-            trips.Clear();
+            message = "No se pudo determinar la institucion del operador. Contacta al administrador.";
+            return;
         }
+
+        var institution = await ApiClient.GetInstitutionByIdAsync(selectedInstitutionId, CancellationToken.None);
+        institutionLabel = institution is null
+            ? $"Institucion ID {selectedInstitutionId}"
+            : $"{institution.Name} ({institution.Code})";
+
+        await LoadTripsAsync();
     }
 
     private async Task LoadTripsAsync()

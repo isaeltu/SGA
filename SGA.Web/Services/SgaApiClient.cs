@@ -112,6 +112,68 @@ public sealed class SgaApiClient
         return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<PortalLoginResponse?> PortalLoginAsync(PortalLoginRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/auth/portal-login", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<PortalLoginResponse>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task RequestMasterOtpAsync(MasterOtpRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/auth/master/request-otp", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PortalLoginResponse?> VerifyMasterOtpAsync(MasterOtpVerifyRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/auth/master/verify-otp", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<PortalLoginResponse>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> CreatePersonAsync(CreatePersonRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/users/persons", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> CreateStudentUserAsync(CreateStudentUserRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/users/students", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> CreateOperatorUserAsync(CreateOperatorUserRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/users/operators", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> CreateDriverUserAsync(CreateDriverUserRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/users/drivers", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> CreateEmployeeUserAsync(CreateEmployeeUserRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/users/employees", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> CreateAdministratorUserAsync(CreateAdministratorUserRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/users/administrators", request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)

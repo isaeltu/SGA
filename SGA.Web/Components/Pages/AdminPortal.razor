@@ -1,6 +1,8 @@
 @page "/portal/admin"
 @rendermode InteractiveServer
 @inject SGA.Web.Services.SgaApiClient ApiClient
+@inject SGA.Web.Services.PortalSessionService Session
+@inject NavigationManager Navigation
 
 <section class="sga-section">
     <h1>Portal Administrador</h1>
@@ -39,6 +41,79 @@
             </div>
         </article>
     </div>
+
+    <article class="sga-card">
+        <h3>Registrar usuario por tipo</h3>
+        <div class="sga-form-grid compact">
+            <label>Tipo de usuario</label>
+            <select class="sga-input" @bind="userType">
+                @if (Session.IsMasterAdmin)
+                {
+                    <option value="administrator">Administrador</option>
+                    <option value="operator">Operador</option>
+                    <option value="driver">Driver</option>
+                }
+                else
+                {
+                    <option value="operator">Operador</option>
+                    <option value="driver">Driver</option>
+                }
+            </select>
+
+            @if (Session.IsMasterAdmin)
+            {
+                <label>Institucion ID</label>
+                <input class="sga-input" type="number" @bind="newUser.InstitutionId" />
+            }
+            else
+            {
+                <label>Institucion asignada</label>
+                <input class="sga-input" value="@Session.InstitutionId" readonly />
+            }
+
+            <label>Nombre</label>
+            <input class="sga-input" @bind="newUser.FirstName" />
+
+            <label>Apellido</label>
+            <input class="sga-input" @bind="newUser.LastName" />
+
+            <label>Correo</label>
+            <input class="sga-input" type="email" @bind="newUser.Email" />
+
+            <label>Telefono (10 digitos)</label>
+            <input class="sga-input" @bind="newUser.PhoneNumber" />
+
+            <label>Cedula</label>
+            <input class="sga-input" @bind="newUser.Cedula" />
+
+            @if (userType == "operator")
+            {
+                <label>Area asignada</label>
+                <input class="sga-input" @bind="newUser.AssignedArea" />
+                <label>Turno</label>
+                <input class="sga-input" type="number" @bind="newUser.ShiftNumber" />
+            }
+
+            @if (userType == "driver")
+            {
+                <label>Licencia</label>
+                <input class="sga-input" @bind="newUser.DriverLicense" />
+                <label>Vencimiento licencia</label>
+                <input class="sga-input" type="date" @bind="newUser.DriverLicenseExpiryDate" />
+            }
+
+            @if (userType == "administrator")
+            {
+                <label>Nivel admin (1=SuperAdmin, 2=Admin, 3=Moderator)</label>
+                <input class="sga-input" type="number" @bind="newUser.AdminLevel" />
+            }
+
+            <label>Creado por</label>
+            <input class="sga-input" @bind="createdBy" />
+
+            <button class="sga-btn" @onclick="RegisterUserAsync">Registrar usuario</button>
+        </div>
+    </article>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
@@ -91,7 +166,24 @@
     private string permissionName = string.Empty;
     private string? permissionDescription;
     private string createdBy = "web-admin";
+    private string userType = "operator";
+    private readonly NewUserForm newUser = new();
     private string? message;
+
+    protected override void OnInitialized()
+    {
+        if (!Session.CanAccess(SGA.Web.Services.PortalRole.Admin))
+        {
+            Navigation.NavigateTo("/login-portal?portal=admin", true);
+            return;
+        }
+
+        if (!Session.IsMasterAdmin)
+        {
+            newUser.InstitutionId = Session.InstitutionId;
+            userType = "operator";
+        }
+    }
 
     private async Task CreateRoleAsync()
     {
@@ -135,5 +227,119 @@
         {
             message = ex.Message;
         }
+    }
+
+    private async Task RegisterUserAsync()
+    {
+        message = null;
+
+        if (!Session.IsMasterAdmin)
+        {
+            if (userType is not ("operator" or "driver"))
+            {
+                message = "Un administrador regular solo puede crear operadores o drivers.";
+                return;
+            }
+
+            newUser.InstitutionId = Session.InstitutionId;
+        }
+
+        if (newUser.InstitutionId <= 0 ||
+            string.IsNullOrWhiteSpace(newUser.FirstName) ||
+            string.IsNullOrWhiteSpace(newUser.LastName) ||
+            string.IsNullOrWhiteSpace(newUser.Email) ||
+            string.IsNullOrWhiteSpace(newUser.PhoneNumber) ||
+            string.IsNullOrWhiteSpace(newUser.Cedula))
+        {
+            message = "Completa los datos base del usuario.";
+            return;
+        }
+
+        try
+        {
+            var roleNameForType = userType switch
+            {
+                "administrator" => "Administrador",
+                "operator" => "Operador",
+                "driver" => "Driver",
+                _ => "Operador"
+            };
+
+            var roleId = await ApiClient.CreateRoleAsync(
+                new SGA.Web.Models.CreateRoleRequest(roleNameForType, $"Rol de {roleNameForType}", createdBy),
+                CancellationToken.None);
+
+            var personId = await ApiClient.CreatePersonAsync(
+                new SGA.Web.Models.CreatePersonRequest(
+                    newUser.InstitutionId,
+                    roleId,
+                    newUser.Email.Trim(),
+                    newUser.PhoneNumber.Trim(),
+                    newUser.FirstName.Trim(),
+                    newUser.LastName.Trim(),
+                    newUser.Cedula.Trim(),
+                    createdBy),
+                CancellationToken.None);
+
+            switch (userType)
+            {
+                case "operator":
+                    await ApiClient.CreateOperatorUserAsync(
+                        new SGA.Web.Models.CreateOperatorUserRequest(
+                            personId,
+                            string.IsNullOrWhiteSpace(newUser.AssignedArea) ? "Operaciones" : newUser.AssignedArea,
+                            newUser.ShiftNumber <= 0 ? 1 : newUser.ShiftNumber,
+                            createdBy),
+                        CancellationToken.None);
+                    break;
+                case "driver":
+                    await ApiClient.CreateDriverUserAsync(
+                        new SGA.Web.Models.CreateDriverUserRequest(
+                            personId,
+                            string.IsNullOrWhiteSpace(newUser.DriverLicense) ? "LIC-NA" : newUser.DriverLicense,
+                            new DateTimeOffset(newUser.DriverLicenseExpiryDate.Date, TimeSpan.Zero),
+                            createdBy),
+                        CancellationToken.None);
+                    break;
+                case "administrator":
+                    if (!Session.IsMasterAdmin)
+                    {
+                        message = "Solo el administrador master puede crear administradores.";
+                        return;
+                    }
+
+                    await ApiClient.CreateAdministratorUserAsync(
+                        new SGA.Web.Models.CreateAdministratorUserRequest(
+                            personId,
+                            newUser.AdminLevel is < 1 or > 3 ? 2 : newUser.AdminLevel,
+                            createdBy),
+                        CancellationToken.None);
+                    break;
+            }
+
+            message = $"Usuario registrado correctamente con Person ID {personId}.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private sealed class NewUserForm
+    {
+        public int InstitutionId { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string Cedula { get; set; } = string.Empty;
+
+        public string AssignedArea { get; set; } = string.Empty;
+        public int ShiftNumber { get; set; } = 1;
+
+        public string DriverLicense { get; set; } = string.Empty;
+        public DateTime DriverLicenseExpiryDate { get; set; } = DateTime.Today.AddYears(1);
+
+        public int AdminLevel { get; set; } = 2;
     }
 }

@@ -26,6 +26,37 @@ public sealed record ReservationResponse(int Id, int TripId, int PersonId, int A
 public sealed record CreateRoleRequest(string Name, string? Description, string CreatedBy);
 public sealed record CreatePermissionRequest(string Name, string? Description, string CreatedBy);
 
+public sealed record PortalLoginRequest(string Email);
+public sealed record MasterOtpRequest(string Email);
+public sealed record MasterOtpVerifyRequest(string Email, string Code);
+public sealed record PortalLoginResponse(
+    int PersonId,
+    int InstitutionId,
+    string FirstName,
+    string LastName,
+    string Email,
+    bool IsAdmin,
+    bool IsOperator,
+    bool IsDriver,
+    bool IsClientOrStudent,
+    bool IsMasterAdmin);
+
+public sealed record CreatePersonRequest(
+    int InstitutionId,
+    int RoleId,
+    string Email,
+    string PhoneNumber,
+    string FirstName,
+    string LastName,
+    string Cedula,
+    string CreatedBy);
+
+public sealed record CreateStudentUserRequest(int PersonId, int CollegeId, string EnrollmentId, string Period, string CareerName, string CreatedBy);
+public sealed record CreateOperatorUserRequest(int PersonId, string AssignedArea, int ShiftNumber, string CreatedBy);
+public sealed record CreateDriverUserRequest(int PersonId, string DriverLicense, DateTimeOffset LicenseExpirationDate, string CreatedBy);
+public sealed record CreateEmployeeUserRequest(int PersonId, int DepartmentId, string EmployeeCode, string Position, DateTimeOffset HireDate, string CreatedBy);
+public sealed record CreateAdministratorUserRequest(int PersonId, int AdminLevel, string CreatedBy);
+
 public sealed record CreateTripRequest(
     int RouteId,
     int DriverId,

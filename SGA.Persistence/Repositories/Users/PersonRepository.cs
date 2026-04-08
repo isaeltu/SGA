@@ -22,7 +22,10 @@ namespace SGA.Persistence.Repositories.Users
 
         public Task<Person?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
-            return _context.Persons.FirstOrDefaultAsync(x => x.Email.Value == email, cancellationToken);
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            return _context.Persons.FirstOrDefaultAsync(
+                x => EF.Property<string>(x, nameof(Person.Email)) == normalizedEmail,
+                cancellationToken);
         }
 
         public Task<Person?> GetByCedulaAsync(string cedula, CancellationToken cancellationToken = default)

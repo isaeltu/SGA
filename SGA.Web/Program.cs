@@ -25,6 +25,7 @@ namespace SGA.Web
                 var settings = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApiSettings>>().Value;
                 client.BaseAddress = new Uri(settings.BaseUrl);
             });
+            builder.Services.AddScoped<PortalSessionService>();
 
             var app = builder.Build();
 

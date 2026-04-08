@@ -1,34 +1,45 @@
 ﻿using System.Windows;
 using System.Net.Http;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace SGA.WPF
 {
     public partial class MainWindow : Window
     {
         private readonly HttpClient _httpClient = new();
+        private readonly ResilienceOptions _resilienceOptions;
 
         public MainWindow()
         {
             InitializeComponent();
-            WriteOutput("Panel de operadores listo.");
+            _resilienceOptions = LoadResilienceOptions();
+            _httpClient.Timeout = TimeSpan.FromSeconds(_resilienceOptions.RequestTimeoutSeconds);
+            WriteOutput($"Panel de operadores listo. Timeout={_resilienceOptions.RequestTimeoutSeconds}s, Retries={_resilienceOptions.MaxRetries}.");
         }
 
-        private async Task<int> PostForIdAsync<T>(string path, T payload)
+        private async Task<int> PostForIdAsync<T>(string path, T payload, CancellationToken cancellationToken)
         {
-            var response = await _httpClient.PostAsJsonAsync(path, payload);
+            var response = await _httpClient.PostAsJsonAsync(path, payload, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                var body = await response.Content.ReadAsStringAsync();
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
                 throw new InvalidOperationException($"API {(int)response.StatusCode}: {body}");
             }
 
-            return await response.Content.ReadFromJsonAsync<int>();
+            var id = await response.Content.ReadFromJsonAsync<int>(cancellationToken);
+            return id;
         }
 
         private void SetBaseAddress()
         {
-            _httpClient.BaseAddress = new Uri(ApiUrlTextBox.Text.Trim());
+            var value = ApiUrlTextBox.Text.Trim();
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+            {
+                throw new InvalidOperationException("La URL base de API no es valida.");
+            }
+
+            _httpClient.BaseAddress = uri;
         }
 
         private void WriteOutput(string message)
@@ -38,34 +49,120 @@ namespace SGA.WPF
 
         private static int ParseInt(string value) => int.TryParse(value, out var number) ? number : 0;
 
-        private async void CreateInstitution_Click(object sender, RoutedEventArgs e)
+        private async Task RunSafeAsync(string operationName, Func<CancellationToken, Task> action)
         {
             try
             {
                 SetBaseAddress();
+                await ExecuteWithRetryAsync(operationName, action);
+            }
+            catch (Exception ex)
+            {
+                WriteOutput($"{operationName}: {ex.Message}");
+            }
+        }
+
+        private async Task ExecuteWithRetryAsync(string operationName, Func<CancellationToken, Task> action)
+        {
+            Exception? lastException = null;
+
+            for (var attempt = 0; attempt <= _resilienceOptions.MaxRetries; attempt++)
+            {
+                try
+                {
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_resilienceOptions.RequestTimeoutSeconds));
+                    await action(cts.Token);
+                    return;
+                }
+                catch (TaskCanceledException ex)
+                {
+                    lastException = ex;
+
+                    if (attempt == _resilienceOptions.MaxRetries)
+                    {
+                        break;
+                    }
+
+                    var delay = TimeSpan.FromMilliseconds(_resilienceOptions.InitialBackoffMs * Math.Pow(2, attempt));
+                    WriteOutput($"{operationName}: timeout, reintentando ({attempt + 1}/{_resilienceOptions.MaxRetries})...");
+                    await Task.Delay(delay);
+                }
+                catch (HttpRequestException ex)
+                {
+                    lastException = ex;
+
+                    if (attempt == _resilienceOptions.MaxRetries)
+                    {
+                        break;
+                    }
+
+                    var delay = TimeSpan.FromMilliseconds(_resilienceOptions.InitialBackoffMs * Math.Pow(2, attempt));
+                    WriteOutput($"{operationName}: error de red, reintentando ({attempt + 1}/{_resilienceOptions.MaxRetries})...");
+                    await Task.Delay(delay);
+                }
+            }
+
+            if (lastException is TaskCanceledException)
+            {
+                throw new InvalidOperationException($"{operationName}: timeout al contactar la API tras reintentos.");
+            }
+
+            if (lastException is HttpRequestException httpEx)
+            {
+                throw new InvalidOperationException($"{operationName}: error de red/API tras reintentos -> {httpEx.Message}");
+            }
+        }
+
+        private static ResilienceOptions LoadResilienceOptions()
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                .Build();
+
+            var options = new ResilienceOptions();
+            configuration.GetSection("Resilience").Bind(options);
+
+            if (options.RequestTimeoutSeconds <= 0)
+            {
+                options.RequestTimeoutSeconds = 20;
+            }
+
+            if (options.MaxRetries < 0)
+            {
+                options.MaxRetries = 2;
+            }
+
+            if (options.InitialBackoffMs <= 0)
+            {
+                options.InitialBackoffMs = 400;
+            }
+
+            return options;
+        }
+
+        private async void CreateInstitution_Click(object sender, RoutedEventArgs e)
+        {
+            await RunSafeAsync("Crear institucion", async ct =>
+            {
                 var id = await PostForIdAsync("api/institutions", new
                 {
                     Code = InstitutionCodeTextBox.Text.Trim(),
                     Name = InstitutionNameTextBox.Text.Trim(),
                     CreatedBy = InstitutionCreatedByTextBox.Text.Trim()
-                });
+                }, ct);
 
                 InstitutionSearchIdTextBox.Text = id.ToString();
                 WriteOutput($"Institucion creada con ID {id}.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void GetInstitution_Click(object sender, RoutedEventArgs e)
         {
-            try
+            await RunSafeAsync("Consultar institucion", async ct =>
             {
-                SetBaseAddress();
                 var id = ParseInt(InstitutionSearchIdTextBox.Text);
-                var institution = await _httpClient.GetFromJsonAsync<InstitutionDto>($"api/institutions/{id}");
+                var institution = await _httpClient.GetFromJsonAsync<InstitutionDto>($"api/institutions/{id}", ct);
                 if (institution is null)
                 {
                     WriteOutput("Institucion no encontrada.");
@@ -73,18 +170,13 @@ namespace SGA.WPF
                 }
 
                 WriteOutput($"Institucion {institution.Id}: {institution.Code} - {institution.Name}");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void CreateBus_Click(object sender, RoutedEventArgs e)
         {
-            try
+            await RunSafeAsync("Crear autobus", async ct =>
             {
-                SetBaseAddress();
                 var id = await PostForIdAsync("api/buses", new
                 {
                     InstitutionId = ParseInt(BusInstitutionIdTextBox.Text),
@@ -93,35 +185,25 @@ namespace SGA.WPF
                     Year = ParseInt(BusYearTextBox.Text),
                     Capacity = ParseInt(BusCapacityTextBox.Text),
                     CreatedBy = BusCreatedByTextBox.Text.Trim()
-                });
+                }, ct);
 
                 WriteOutput($"Autobus creado con ID {id}.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void LoadBuses_Click(object sender, RoutedEventArgs e)
         {
-            try
+            await RunSafeAsync("Consultar autobuses", async ct =>
             {
-                SetBaseAddress();
-                var buses = await _httpClient.GetFromJsonAsync<IReadOnlyCollection<BusDto>>("api/buses");
+                var buses = await _httpClient.GetFromJsonAsync<IReadOnlyCollection<BusDto>>("api/buses", ct);
                 WriteOutput($"Total autobuses: {buses?.Count ?? 0}.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void CreateTrip_Click(object sender, RoutedEventArgs e)
         {
-            try
+            await RunSafeAsync("Crear viaje", async ct =>
             {
-                SetBaseAddress();
                 var now = DateTime.UtcNow;
                 var id = await PostForIdAsync("api/trips", new
                 {
@@ -133,15 +215,11 @@ namespace SGA.WPF
                     ScheduledArrivalTime = now.AddHours(1),
                     AvailableSeats = ParseInt(TripSeatsTextBox.Text),
                     CreatedBy = TripCreatedByTextBox.Text.Trim()
-                });
+                }, ct);
 
                 TripIdTextBox.Text = id.ToString();
                 WriteOutput($"Viaje creado con ID {id}.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void GetTrip_Click(object sender, RoutedEventArgs e)
@@ -151,11 +229,10 @@ namespace SGA.WPF
 
         private async Task GetTripInternalAsync()
         {
-            try
+            await RunSafeAsync("Consultar viaje", async ct =>
             {
-                SetBaseAddress();
                 var id = ParseInt(TripIdTextBox.Text);
-                var trip = await _httpClient.GetFromJsonAsync<TripDto>($"api/trips/{id}");
+                var trip = await _httpClient.GetFromJsonAsync<TripDto>($"api/trips/{id}", ct);
                 if (trip is null)
                 {
                     WriteOutput("Viaje no encontrado.");
@@ -163,11 +240,7 @@ namespace SGA.WPF
                 }
 
                 WriteOutput($"Viaje {trip.Id} estado {trip.Status}, asientos {trip.AvailableSeats}.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void StartTrip_Click(object sender, RoutedEventArgs e)
@@ -187,29 +260,24 @@ namespace SGA.WPF
 
         private async Task ExecuteTripActionAsync(string path, string okMessage)
         {
-            try
+            await RunSafeAsync(okMessage, async ct =>
             {
-                SetBaseAddress();
                 var response = await _httpClient.PostAsJsonAsync(path, new
                 {
                     TripId = ParseInt(TripIdTextBox.Text),
                     ModifiedBy = TripModifiedByTextBox.Text.Trim()
-                });
+                }, ct);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var body = await response.Content.ReadAsStringAsync();
+                    var body = await response.Content.ReadAsStringAsync(ct);
                     WriteOutput($"API {(int)response.StatusCode}: {body}");
                     return;
                 }
 
                 WriteOutput(okMessage);
                 await GetTripInternalAsync();
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void CreateReservationQuick_Click(object sender, RoutedEventArgs e)
@@ -224,42 +292,36 @@ namespace SGA.WPF
 
         private async Task CreateReservationInternalAsync(bool generateTicket)
         {
-            try
+            await RunSafeAsync("Crear reserva", async ct =>
             {
-                SetBaseAddress();
                 var id = await PostForIdAsync("api/reservations", new
                 {
                     TripId = ParseInt(ReservationTripIdTextBox.Text),
                     PersonId = ParseInt(ReservationPersonIdTextBox.Text),
                     AuthorizationId = ParseInt(ReservationAuthorizationIdTextBox.Text),
                     CreatedBy = ReservationCreatedByTextBox.Text.Trim()
-                });
+                }, ct);
 
                 ReservationIdTextBox.Text = id.ToString();
                 WriteOutput($"Reserva creada con ID {id}.");
 
                 if (generateTicket)
                 {
-                    var reservation = await _httpClient.GetFromJsonAsync<ReservationDto>($"api/reservations/{id}");
+                    var reservation = await _httpClient.GetFromJsonAsync<ReservationDto>($"api/reservations/{id}", ct);
                     if (reservation is not null)
                     {
                         WriteOutput($"Ticket -> Reserva {reservation.Id}, asiento {ReservationSeatTextBox.Text.Trim()}, cola {reservation.QueueNumber}.");
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void GetReservation_Click(object sender, RoutedEventArgs e)
         {
-            try
+            await RunSafeAsync("Consultar reserva", async ct =>
             {
-                SetBaseAddress();
                 var id = ParseInt(ReservationIdTextBox.Text);
-                var reservation = await _httpClient.GetFromJsonAsync<ReservationDto>($"api/reservations/{id}");
+                var reservation = await _httpClient.GetFromJsonAsync<ReservationDto>($"api/reservations/{id}", ct);
                 if (reservation is null)
                 {
                     WriteOutput("Reserva no encontrada.");
@@ -267,42 +329,40 @@ namespace SGA.WPF
                 }
 
                 WriteOutput($"Reserva {reservation.Id} estado {reservation.Status}, cola {reservation.QueueNumber}.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private async void BoardReservation_Click(object sender, RoutedEventArgs e)
         {
-            try
+            await RunSafeAsync("Abordar reserva", async ct =>
             {
-                SetBaseAddress();
                 var response = await _httpClient.PostAsJsonAsync("api/reservations/board", new
                 {
                     ReservationId = ParseInt(ReservationIdTextBox.Text),
                     ModifiedBy = ReservationModifiedByTextBox.Text.Trim()
-                });
+                }, ct);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var body = await response.Content.ReadAsStringAsync();
+                    var body = await response.Content.ReadAsStringAsync(ct);
                     WriteOutput($"API {(int)response.StatusCode}: {body}");
                     return;
                 }
 
                 WriteOutput("Reserva abordada correctamente.");
-            }
-            catch (Exception ex)
-            {
-                WriteOutput(ex.Message);
-            }
+            });
         }
 
         private sealed record InstitutionDto(int Id, string Code, string Name, DateTime CreatedAt);
         private sealed record BusDto(int Id, int InstitutionId, string LicensePlate, string Model, int Year, int Capacity, int AvailableSeats, string Status);
         private sealed record TripDto(int Id, int InstitutionId, int RouteId, int DriverId, int BusId, string Status, DateTime ScheduledDepartureTime, DateTime ScheduledArrivalTime, DateTime? ActualDepartureTime, DateTime? ActualArrivalTime, int AvailableSeats);
         private sealed record ReservationDto(int Id, int TripId, int PersonId, int AuthorizationId, int QueueNumber, string QrCode, string Status, DateTime CreatedAt);
+
+        private sealed class ResilienceOptions
+        {
+            public int RequestTimeoutSeconds { get; set; } = 20;
+            public int MaxRetries { get; set; } = 2;
+            public int InitialBackoffMs { get; set; } = 400;
+        }
     }
 }
