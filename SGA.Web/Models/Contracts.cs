@@ -28,6 +28,7 @@ public sealed record CreatePermissionRequest(string Name, string? Description, s
 
 public sealed record PortalLoginRequest(string Email);
 public sealed record MasterOtpRequest(string Email);
+public sealed record MasterOtpRequestResponse(string Message, string? DevelopmentCode);
 public sealed record MasterOtpVerifyRequest(string Email, string Code);
 public sealed record PortalLoginResponse(
     int PersonId,

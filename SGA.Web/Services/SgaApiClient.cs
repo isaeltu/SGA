@@ -119,10 +119,11 @@ public sealed class SgaApiClient
         return await response.Content.ReadFromJsonAsync<PortalLoginResponse>(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task RequestMasterOtpAsync(MasterOtpRequest request, CancellationToken cancellationToken)
+    public async Task<MasterOtpRequestResponse?> RequestMasterOtpAsync(MasterOtpRequest request, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync("api/auth/master/request-otp", request, cancellationToken).ConfigureAwait(false);
         await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<MasterOtpRequestResponse>(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<PortalLoginResponse?> VerifyMasterOtpAsync(MasterOtpVerifyRequest request, CancellationToken cancellationToken)

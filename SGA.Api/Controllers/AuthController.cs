@@ -11,25 +11,26 @@ namespace SGA.Api.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private const string MasterAdminEmail = "adm@isael.com";
-    private const string MasterOtpRecipient = "isaelcapellanlite@gmail.com";
     private const string MasterOtpCacheKey = "MASTER_ADMIN_OTP";
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IMemoryCache _memoryCache;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
     public AuthController(
         ApplicationDbContext dbContext,
         IMemoryCache memoryCache,
         IConfiguration configuration,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
         _memoryCache = memoryCache;
         _configuration = configuration;
         _logger = logger;
+        _environment = environment;
     }
 
     [HttpPost("portal-login")]
@@ -79,7 +80,9 @@ public class AuthController : ControllerBase
     [HttpPost("master/request-otp")]
     public async Task<IActionResult> RequestMasterOtp([FromBody] MasterOtpRequest request, CancellationToken cancellationToken)
     {
-        if (!string.Equals(request.Email?.Trim(), MasterAdminEmail, StringComparison.OrdinalIgnoreCase))
+        var masterAdminEmail = GetMasterAdminEmail();
+
+        if (!string.Equals(request.Email?.Trim(), masterAdminEmail, StringComparison.OrdinalIgnoreCase))
         {
             return Unauthorized("Este acceso solo aplica para el administrador master.");
         }
@@ -87,14 +90,29 @@ public class AuthController : ControllerBase
         var otp = Random.Shared.Next(100000, 999999).ToString();
         _memoryCache.Set(MasterOtpCacheKey, otp, TimeSpan.FromMinutes(5));
 
-        await SendOtpByEmailAsync(otp, cancellationToken).ConfigureAwait(false);
-        return Ok(new { message = "Codigo enviado al correo de seguridad del master admin." });
+        var sentByEmail = await SendOtpByEmailAsync(otp, cancellationToken).ConfigureAwait(false);
+
+        if (sentByEmail)
+        {
+            return Ok(new MasterOtpRequestResponse("Codigo enviado al correo de seguridad del master admin.", null));
+        }
+
+        if (_environment.IsDevelopment() && IsDevOtpFallbackEnabled())
+        {
+            _logger.LogWarning("SMTP is not configured. Returning development OTP fallback.");
+            return Ok(new MasterOtpRequestResponse("SMTP no configurado. Usando codigo temporal de desarrollo.", otp));
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError,
+            new MasterOtpRequestResponse("SMTP no configurado en servidor. Contacta al administrador.", null));
     }
 
     [HttpPost("master/verify-otp")]
     public IActionResult VerifyMasterOtp([FromBody] MasterOtpVerifyRequest request)
     {
-        if (!string.Equals(request.Email?.Trim(), MasterAdminEmail, StringComparison.OrdinalIgnoreCase))
+        var masterAdminEmail = GetMasterAdminEmail();
+
+        if (!string.Equals(request.Email?.Trim(), masterAdminEmail, StringComparison.OrdinalIgnoreCase))
         {
             return Unauthorized("Este acceso solo aplica para el administrador master.");
         }
@@ -116,7 +134,7 @@ public class AuthController : ControllerBase
             0,
             "Master",
             "Admin",
-            MasterAdminEmail,
+            masterAdminEmail,
             true,
             false,
             false,
@@ -126,8 +144,10 @@ public class AuthController : ControllerBase
         return Ok(profile);
     }
 
-    private async Task SendOtpByEmailAsync(string otp, CancellationToken cancellationToken)
+    private async Task<bool> SendOtpByEmailAsync(string otp, CancellationToken cancellationToken)
     {
+        var masterOtpRecipient = GetMasterOtpRecipientEmail();
+
         var host = _configuration["Smtp:Host"];
         var portRaw = _configuration["Smtp:Port"];
         var user = _configuration["Smtp:User"];
@@ -142,7 +162,7 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(from))
         {
             _logger.LogWarning("SMTP is not fully configured. OTP for master admin cannot be delivered by email.");
-            throw new InvalidOperationException("SMTP no esta configurado en la API. Configura Smtp en appsettings para enviar el codigo.");
+            return false;
         }
 
         using var client = new SmtpClient(host, port)
@@ -151,7 +171,7 @@ public class AuthController : ControllerBase
             Credentials = new NetworkCredential(user, pass)
         };
 
-        using var message = new MailMessage(from, MasterOtpRecipient)
+        using var message = new MailMessage(from, masterOtpRecipient)
         {
             Subject = "Codigo OTP - Master Admin SGA",
             Body = $"Tu codigo de verificacion de 6 digitos es: {otp}. Expira en 5 minutos."
@@ -159,10 +179,28 @@ public class AuthController : ControllerBase
 
         cancellationToken.ThrowIfCancellationRequested();
         await client.SendMailAsync(message).ConfigureAwait(false);
+        return true;
+    }
+
+    private string GetMasterAdminEmail()
+    {
+        return _configuration["Auth:MasterAdminEmail"]?.Trim().ToLowerInvariant() ?? "adm@isael.com";
+    }
+
+    private string GetMasterOtpRecipientEmail()
+    {
+        return _configuration["Auth:MasterOtpRecipientEmail"]?.Trim().ToLowerInvariant() ?? "isaelcapellanlite@gmaill.com";
+    }
+
+    private bool IsDevOtpFallbackEnabled()
+    {
+        var rawValue = _configuration["Auth:EnableDevOtpFallback"];
+        return bool.TryParse(rawValue, out var enabled) && enabled;
     }
 
     public sealed record PortalLoginRequest(string Email);
     public sealed record MasterOtpRequest(string Email);
+    public sealed record MasterOtpRequestResponse(string Message, string? DevelopmentCode);
     public sealed record MasterOtpVerifyRequest(string Email, string Code);
 
     public sealed record PortalLoginResponse(

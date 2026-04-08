@@ -65,9 +65,11 @@
         {
             if (portal == "admin" && string.Equals(email.Trim(), "adm@isael.com", StringComparison.OrdinalIgnoreCase))
             {
-                await ApiClient.RequestMasterOtpAsync(new SGA.Web.Models.MasterOtpRequest(email.Trim()), CancellationToken.None);
+                var otpResponse = await ApiClient.RequestMasterOtpAsync(new SGA.Web.Models.MasterOtpRequest(email.Trim()), CancellationToken.None);
                 showMasterOtpStep = true;
-                message = "Se envio un codigo de 6 digitos al correo de seguridad del master admin.";
+                message = otpResponse?.DevelopmentCode is null
+                    ? otpResponse?.Message ?? "Se envio un codigo de 6 digitos al correo de seguridad del master admin."
+                    : $"{otpResponse.Message} Codigo OTP DEV: {otpResponse.DevelopmentCode}";
                 return;
             }
 
