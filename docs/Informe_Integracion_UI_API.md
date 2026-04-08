@@ -142,7 +142,65 @@ flowchart LR
 
 ---
 
-## 8. Conclusiones
+## 8. Matriz de cumplimiento contra requerimientos de la practica
+
+### 8.1 Objetivo general (integracion desacoplada y mantenible)
+- Cumplido: SI.
+- Evidencia tecnica:
+  - Servicio de consumo centralizado en `SGA.Web/Services/SgaApiClient.cs`.
+  - API separada en `SGA.Api` y casos de uso en `SGA.Application`.
+  - Dominio encapsulado en `SGA.Domain` y persistencia en `SGA.Persistence`.
+
+### 8.2 Actividad 1 - Diseno de integracion con APIs
+- Endpoints REST identificados y consumidos: SI (GET/POST/PUT y acciones por modulo).
+- DTOs de entrada/salida: SI (`SGA.Web/Models/Contracts.cs`).
+- Contrato JSON y codigos HTTP: SI.
+- Manejo de errores HTTP: SI (cliente encapsula errores y API retorna codigos estandar).
+
+### 8.3 Actividad 2 - Arquitectura logica de presentacion
+- Pages/Components: SI.
+- Servicios de consumo API: SI (sin llamadas HTTP dispersas por toda la UI).
+- ViewModels/Models: SI.
+- Helpers/servicios auxiliares: SI (`PortalSessionService`).
+- Diagrama logico obligatorio: SI (incluido en seccion 3.2).
+
+### 8.4 Actividad 3 - Implementacion tecnica
+- Flujo UI -> Servicio API -> API -> JSON -> UI: SI.
+- Validaciones backend: SI (FluentValidation + pipeline).
+- Validaciones frontend: PARCIAL (presentes en varios formularios, falta estandarizacion completa).
+- Renderizado de componentes reutilizables: SI (Blazor components/pages).
+
+### 8.5 Actividad 4 - Pruebas funcionales
+- Pruebas automatizadas de integracion API: SI (agregadas en `SGA.Api.Tests`).
+- Pruebas unitarias cliente de consumo HTTP: SI (agregadas en `SGA.Web.Tests`).
+- Casos cubiertos actualmente:
+  - Datos validos.
+  - Datos inexistentes (404).
+  - Errores HTTP en cliente (400/401).
+- Pendiente para cobertura total academica:
+  - Timeout y API no disponible (simulacion explicita).
+  - Flujos de reserva y viajes completos end-to-end.
+
+### 8.6 Entregables y evidencia
+- Codigo fuente integrado: SI.
+- Documento tecnico: SI (este informe).
+- Evidencia de funcionamiento (capturas/video): PENDIENTE.
+
+---
+
+## 9. Checklist de evidencia para cierre de entrega
+- Captura 1: Crear institucion y ver ID retornado (201).
+- Captura 2: Listado de instituciones actualizado en UI.
+- Captura 3: Crear bus y ver reflejo en consulta.
+- Captura 4: Crear viaje y cambiar estado (start/complete/cancel).
+- Captura 5: Reserva normal y reserva invitado.
+- Captura 6: Validacion de datos invalidos (400 visible en UI).
+- Captura 7: Caso no encontrado (404).
+- Video corto (2-5 min): flujo UI -> API -> UI para un CRUD + manejo de error.
+
+---
+
+## 10. Conclusiones
 El codigo actual cumple una parte importante de los criterios de integracion moderna API-first y arquitectura por capas. La base tecnica esta bien orientada, desacoplada y mantenible.
 
 Para cumplir al 100% con la practica academica, faltan sobre todo:

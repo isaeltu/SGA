@@ -4,7 +4,7 @@
 
 <section class="sga-section">
     <h1>Portal Cliente y Estudiante</h1>
-    <p class="lead">Reserva sin iniciar sesion: selecciona institucion, elige viaje y confirma tus datos.</p>
+    <p class="lead">Reserva sin iniciar sesion: selecciona institucion y viaje. Tus datos son opcionales.</p>
 
     <div class="sga-form-grid">
         <label>Institucion</label>
@@ -33,16 +33,16 @@
     <article class="sga-card">
         <h3>Datos para reserva</h3>
         <div class="sga-form-grid compact">
-            <label>Nombre</label>
+            <label>Nombre (opcional)</label>
             <input @bind="guest.FirstName" class="sga-input" />
 
-            <label>Apellido</label>
+            <label>Apellido (opcional)</label>
             <input @bind="guest.LastName" class="sga-input" />
 
-            <label>Correo</label>
+            <label>Correo (opcional)</label>
             <input @bind="guest.Email" type="email" class="sga-input" />
 
-            <label>Telefono</label>
+            <label>Telefono (opcional)</label>
             <input @bind="guest.PhoneNumber" placeholder="8091234567" class="sga-input" />
 
             <button class="sga-btn" @onclick="CreateGuestReservationAsync">Reservar ahora</button>
@@ -124,25 +124,16 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(guest.FirstName) ||
-            string.IsNullOrWhiteSpace(guest.LastName) ||
-            string.IsNullOrWhiteSpace(guest.Email) ||
-            string.IsNullOrWhiteSpace(guest.PhoneNumber))
-        {
-            message = "Completa nombre, apellido, correo y telefono.";
-            return;
-        }
-
         try
         {
             var reservationId = await ApiClient.CreateGuestReservationAsync(
                 new SGA.Web.Models.CreateGuestReservationRequest(
                     selectedInstitutionId,
                     selectedTripId,
-                    guest.FirstName.Trim(),
-                    guest.LastName.Trim(),
-                    guest.Email.Trim(),
-                    guest.PhoneNumber.Trim(),
+                    NormalizeOrNull(guest.FirstName),
+                    NormalizeOrNull(guest.LastName),
+                    NormalizeOrNull(guest.Email),
+                    NormalizeOrNull(guest.PhoneNumber),
                     "guest-web"),
                 CancellationToken.None);
 
@@ -165,5 +156,10 @@
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
+    }
+
+    private static string? NormalizeOrNull(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }

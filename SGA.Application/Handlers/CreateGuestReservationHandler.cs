@@ -78,19 +78,29 @@ namespace SGA.Application.Handlers
 
         private async Task<Person> EnsurePersonAsync(CreateGuestReservationCommand request, int roleId, CancellationToken cancellationToken)
         {
-            var existingByEmail = await _personRepository.GetByEmailAsync(request.Email, cancellationToken).ConfigureAwait(false);
-            if (existingByEmail is not null)
+            var normalizedEmail = NormalizeOrNull(request.Email);
+            if (normalizedEmail is not null)
             {
-                return existingByEmail;
+                var existingByEmail = await _personRepository.GetByEmailAsync(normalizedEmail, cancellationToken).ConfigureAwait(false);
+                if (existingByEmail is not null)
+                {
+                    return existingByEmail;
+                }
             }
+
+            var firstName = NormalizeName(request.FirstName, "Invitado");
+            var lastName = NormalizeName(request.LastName, "Web");
+            var email = normalizedEmail ?? GenerateGuestEmail();
+            var phoneNumber = NormalizePhoneOrDefault(request.PhoneNumber);
+            var cedula = await GenerateUniqueGuestCedulaAsync(cancellationToken).ConfigureAwait(false);
 
             var person = new Person(
                 roleId,
-                request.Email,
-                request.PhoneNumber,
-                request.FirstName,
-                request.LastName,
-                GenerateGuestCedula(request.PhoneNumber))
+                email,
+                phoneNumber,
+                firstName,
+                lastName,
+                cedula)
             {
                 InstitutionId = request.InstitutionId
             };
@@ -147,11 +157,64 @@ namespace SGA.Application.Handlers
             return $"{DateTime.UtcNow.Year}-{suffix}";
         }
 
-        private static string GenerateGuestCedula(string phoneNumber)
+        private async Task<string> GenerateUniqueGuestCedulaAsync(CancellationToken cancellationToken)
         {
-            var digits = new string(phoneNumber.Where(char.IsDigit).ToArray());
-            var tail = digits.Length >= 6 ? digits[^6..] : digits.PadLeft(6, '0');
-            return $"GUEST-{tail}-{DateTime.UtcNow:HHmmss}";
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                var cedula = GenerateGuestCedula();
+                var existingByCedula = await _personRepository.GetByCedulaAsync(cedula, cancellationToken).ConfigureAwait(false);
+                if (existingByCedula is null)
+                {
+                    return cedula;
+                }
+            }
+
+            // Last fallback is still 11 digits and very unlikely to collide.
+            return GenerateGuestCedula();
+        }
+
+        private static string GenerateGuestCedula()
+        {
+            var numeric = RandomNumberGenerator.GetInt32(0, 100_000_000);
+            var prefix = DateTime.UtcNow.ToString("yyMM");
+            return $"{prefix}{numeric:0000000}";
+        }
+
+        private static string NormalizeName(string? value, string fallback)
+        {
+            var normalized = NormalizeOrNull(value);
+            if (normalized is null)
+            {
+                return fallback;
+            }
+
+            return normalized.Length <= 50 ? normalized : normalized[..50];
+        }
+
+        private static string NormalizePhoneOrDefault(string? value)
+        {
+            var digits = value is null
+                ? string.Empty
+                : new string(value.Where(char.IsDigit).ToArray());
+
+            if (digits.Length == 10)
+            {
+                return digits;
+            }
+
+            var suffix = RandomNumberGenerator.GetInt32(0, 10_000_000);
+            return $"809{suffix:0000000}";
+        }
+
+        private static string GenerateGuestEmail()
+        {
+            var token = Guid.NewGuid().ToString("N")[..12];
+            return $"guest-{token}@sga.local";
+        }
+
+        private static string? NormalizeOrNull(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
     }
 }

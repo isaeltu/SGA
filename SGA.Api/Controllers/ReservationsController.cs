@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SGA.Application.Commands;
 using SGA.Application.Queries;
 
@@ -26,8 +27,27 @@ public class ReservationsController : ControllerBase
     [HttpPost("guest")]
     public async Task<ActionResult<int>> CreateGuest([FromBody] CreateGuestReservationCommand command, CancellationToken cancellationToken)
     {
-        var id = await _mediator.Send(command, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { reservationId = id }, id);
+        try
+        {
+            var id = await _mediator.Send(command, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { reservationId = id }, id);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (DbUpdateException)
+        {
+            return BadRequest("No se pudo crear la reserva con los datos recibidos. Intenta nuevamente.");
+        }
     }
 
     [HttpGet("{reservationId:int}")]

@@ -15,10 +15,10 @@ public sealed record CreateReservationRequest(int TripId, int PersonId, int Auth
 public sealed record CreateGuestReservationRequest(
     int InstitutionId,
     int TripId,
-    string FirstName,
-    string LastName,
-    string Email,
-    string PhoneNumber,
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    string? PhoneNumber,
     string CreatedBy);
 public sealed record BoardReservationRequest(int ReservationId, string ModifiedBy);
 public sealed record ReservationResponse(int Id, int TripId, int PersonId, int AuthorizationId, int QueueNumber, string QrCode, string Status, DateTime CreatedAt);
