@@ -19,27 +19,6 @@ namespace SGA.Application.Handlers
         public async Task<IReadOnlyCollection<DriverLookupDto>> Handle(GetDriversQuery request, CancellationToken cancellationToken)
         {
             var drivers = await _driverRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
-            Dictionary<int, (int InstitutionId, string FullName)>? personById = null;
-
-            try
-            {
-                var people = await _personRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
-                personById = people
-                    .Where(p => !p.IsDeleted)
-                    .ToDictionary(
-                        p => p.Id,
-                        p =>
-                        {
-                            var fullName = $"{p.FirstName} {p.LastName}".Trim();
-                            return (p.InstitutionId, string.IsNullOrWhiteSpace(fullName) ? $"Driver {p.Id}" : fullName);
-                        });
-            }
-            catch
-            {
-                // Some legacy records can fail full Person materialization.
-                // Keep endpoint usable by returning driver info without person details.
-                personById = null;
-            }
 
             var query = drivers.Where(d => !d.IsDeleted);
             if (request.OnlyAvailable)
@@ -47,37 +26,45 @@ namespace SGA.Application.Handlers
                 query = query.Where(d => d.IsAvailable);
             }
 
-            IEnumerable<DriverLookupDto> results;
+            var results = new List<DriverLookupDto>();
 
-            if (personById is null)
+            foreach (var driver in query)
             {
-                results = query.Select(d => new DriverLookupDto(
-                    d.Id,
-                    d.PersonId,
-                    0,
-                    $"Driver {d.Id}",
-                    d.DriverLicence,
-                    d.IsAvailable));
-            }
-            else
-            {
-                results = query
-                    .Where(d => personById.ContainsKey(d.PersonId))
-                    .Select(d =>
+                try
                     {
-                        var person = personById[d.PersonId];
-                        return new DriverLookupDto(
-                            d.Id,
-                            d.PersonId,
-                            person.InstitutionId,
-                            person.FullName,
-                            d.DriverLicence,
-                            d.IsAvailable);
-                    });
+                    var person = await _personRepository.GetByIdAsync(driver.PersonId, cancellationToken).ConfigureAwait(false);
+                    if (person is null || person.IsDeleted)
+                    {
+                        continue;
+                    }
 
-                if (request.InstitutionId.HasValue)
+                    if (request.InstitutionId.HasValue && person.InstitutionId != request.InstitutionId.Value)
+                    {
+                        continue;
+                    }
+
+                    var fullName = $"{person.FirstName} {person.LastName}".Trim();
+                    results.Add(new DriverLookupDto(
+                        driver.Id,
+                        driver.PersonId,
+                        person.InstitutionId,
+                        string.IsNullOrWhiteSpace(fullName) ? $"Driver {driver.Id}" : fullName,
+                        driver.DriverLicence,
+                        driver.IsAvailable));
+                }
+                catch
                 {
-                    results = results.Where(x => x.InstitutionId == request.InstitutionId.Value);
+                    // Keep list usable even if one specific person record cannot be materialized.
+                    if (!request.InstitutionId.HasValue)
+                    {
+                        results.Add(new DriverLookupDto(
+                            driver.Id,
+                            driver.PersonId,
+                            0,
+                            $"Driver {driver.Id}",
+                            driver.DriverLicence,
+                            driver.IsAvailable));
+                    }
                 }
             }
 
