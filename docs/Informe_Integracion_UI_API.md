@@ -185,6 +185,8 @@ flowchart LR
 - Codigo fuente integrado: SI.
 - Documento tecnico: SI (este informe).
 - Evidencia de funcionamiento (capturas/video): PENDIENTE.
+- Ruta de evidencia definida: `docs/evidencias/`.
+- Guia paso a paso para generar evidencia: `docs/evidencias/Guion_Capturas_y_Video.md`.
 
 ---
 
