@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Repositories.Users;
+using SGA.Domain.ValueObjects.Users;
 using SGA.Persistence.Context;
 using SGA.Persistence.Repositories;
 
@@ -23,8 +24,10 @@ namespace SGA.Persistence.Repositories.Users
         public Task<Person?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             var normalizedEmail = email.Trim().ToLowerInvariant();
+            var emailValueObject = new Email(normalizedEmail);
+
             return _context.Persons.FirstOrDefaultAsync(
-                x => EF.Property<string>(x, nameof(Person.Email)) == normalizedEmail,
+                x => x.Email == emailValueObject,
                 cancellationToken);
         }
 

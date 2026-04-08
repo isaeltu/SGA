@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using SGA.Domain.ValueObjects.Users;
 using SGA.Persistence.Context;
 using System.Net;
 using System.Net.Mail;
@@ -42,11 +43,12 @@ public class AuthController : ControllerBase
         }
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var emailValueObject = new Email(normalizedEmail);
 
         var person = await _dbContext.Persons
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                p => EF.Property<string>(p, nameof(SGA.Domain.Entities.Users.Person.Email)) == normalizedEmail,
+                p => p.Email == emailValueObject,
                 cancellationToken)
             .ConfigureAwait(false);
 
