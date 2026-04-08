@@ -201,7 +201,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.LicensePlate)
                 .HasConversion(
                     plate => plate.Value,
-                    value => new LicensePlate(value))
+                    value => LicensePlate.FromDatabase(value))
                 .HasMaxLength(12)
                 .IsUnicode(false);
             entity.Property(e => e.Model).HasMaxLength(50);

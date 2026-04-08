@@ -18,6 +18,7 @@ namespace SGA.Application.Handlers
         {
             var buses = await _busRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
             return buses
+                .Where(bus => !bus.IsDeleted)
                 .Select(bus => new BusDto(
                     bus.Id,
                     bus.InstitutionId,

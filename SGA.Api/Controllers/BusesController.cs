@@ -41,4 +41,11 @@ public class BusesController : ControllerBase
 
         return Ok(bus);
     }
+
+    [HttpDelete("{busId:int}")]
+    public async Task<IActionResult> Delete(int busId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteBusCommand(busId), cancellationToken);
+        return NoContent();
+    }
 }

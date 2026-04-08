@@ -40,6 +40,12 @@ public sealed class SgaApiClient
     public Task<BusResponse?> GetBusByIdAsync(int busId, CancellationToken cancellationToken)
         => _httpClient.GetFromJsonAsync<BusResponse>($"api/buses/{busId}", cancellationToken);
 
+    public async Task DeleteBusAsync(int busId, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.DeleteAsync($"api/buses/{busId}", cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<int> CreateRouteAsync(CreateRouteRequest request, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync("api/routes", request, cancellationToken).ConfigureAwait(false);

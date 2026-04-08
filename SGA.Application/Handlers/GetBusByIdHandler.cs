@@ -17,7 +17,7 @@ namespace SGA.Application.Handlers
         public async Task<BusDto?> Handle(GetBusByIdQuery request, CancellationToken cancellationToken)
         {
             var bus = await _busRepository.GetByIdAsync(request.BusId, cancellationToken).ConfigureAwait(false);
-            if (bus is null)
+            if (bus is null || bus.IsDeleted)
             {
                 return null;
             }

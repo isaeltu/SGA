@@ -30,6 +30,35 @@
 
             <button class="sga-btn alt" @onclick="CreateBusAsync">Registrar autobus</button>
         </div>
+
+        @if (buses.Count > 0)
+        {
+            <table class="sga-table" style="margin-top:1rem;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Placa</th>
+                        <th>Modelo</th>
+                        <th>Capacidad</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bus in buses)
+                    {
+                        <tr>
+                            <td>@bus.Id</td>
+                            <td>@bus.LicensePlate</td>
+                            <td>@bus.Model</td>
+                            <td>@bus.Capacity</td>
+                            <td>
+                                <button class="sga-btn danger" @onclick="() => DeleteBusAsync(bus.Id)">Eliminar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </article>
 
     <article class="sga-card">
@@ -261,6 +290,21 @@
                 CancellationToken.None);
 
             message = $"Autobus registrado con ID {busId}.";
+            await LoadBusesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task DeleteBusAsync(int busId)
+    {
+        message = null;
+        try
+        {
+            await ApiClient.DeleteBusAsync(busId, CancellationToken.None);
+            message = $"Autobus {busId} eliminado correctamente.";
             await LoadBusesAsync();
         }
         catch (Exception ex)
