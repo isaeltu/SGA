@@ -9,8 +9,21 @@
     <p class="lead">Gestiona buses, rutas y viajes para que los clientes reserven con informacion clara.</p>
 
     <div class="sga-form-grid">
-        <label>Institucion asignada al operador</label>
-        <input class="sga-input" value="@institutionLabel" readonly />
+        <label>Institucion de trabajo</label>
+        @if (Session.InstitutionId > 0)
+        {
+            <input class="sga-input" value="@institutionLabel" readonly />
+        }
+        else
+        {
+            <select class="sga-input" @bind="selectedInstitutionId" @bind:after="OnInstitutionChangedAsync">
+                <option value="0">Selecciona una institucion</option>
+                @foreach (var institution in institutions)
+                {
+                    <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+                }
+            </select>
+        }
     </div>
 
     <article class="sga-card">
@@ -171,6 +184,7 @@
 </section>
 
 @code {
+    private List<SGA.Web.Models.InstitutionResponse> institutions = new();
     private List<SGA.Web.Models.TripResponse> trips = new();
     private List<SGA.Web.Models.RouteResponse> routes = new();
     private List<SGA.Web.Models.BusResponse> buses = new();
@@ -196,25 +210,21 @@
             return;
         }
 
+        var institutionResponse = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+        institutions = institutionResponse?.Where(i => i.IsActive).OrderBy(i => i.Name).ToList()
+            ?? new List<SGA.Web.Models.InstitutionResponse>();
+
         selectedInstitutionId = Session.InstitutionId;
         modifiedBy = string.IsNullOrWhiteSpace(Session.Email) ? modifiedBy : Session.Email;
         createdBy = string.IsNullOrWhiteSpace(Session.Email) ? createdBy : Session.Email;
 
         if (selectedInstitutionId <= 0)
         {
-            message = "No se pudo determinar la institucion del operador. Contacta al administrador.";
+            message = "Tu cuenta no tiene institucion asignada. Selecciona una institucion para continuar.";
             return;
         }
 
-        var institution = await ApiClient.GetInstitutionByIdAsync(selectedInstitutionId, CancellationToken.None);
-        institutionLabel = institution is null
-            ? $"Institucion ID {selectedInstitutionId}"
-            : $"{institution.Name} ({institution.Code})";
-
-        await LoadRoutesAsync();
-        await LoadBusesAsync();
-        await LoadDriversAsync();
-        await LoadTripsAsync();
+        await LoadInstitutionContextAsync();
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -229,25 +239,49 @@
 
     private async Task LoadTripsAsync()
     {
+        if (selectedInstitutionId <= 0)
+        {
+            trips.Clear();
+            return;
+        }
+
         var response = await ApiClient.GetTripsAsync(selectedInstitutionId, false, CancellationToken.None);
         trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
     }
 
     private async Task LoadRoutesAsync()
     {
+        if (selectedInstitutionId <= 0)
+        {
+            routes.Clear();
+            return;
+        }
+
         var response = await ApiClient.GetRoutesAsync(selectedInstitutionId, CancellationToken.None);
         routes = response?.Where(x => x.IsActive).OrderBy(x => x.Name).ToList() ?? new List<SGA.Web.Models.RouteResponse>();
     }
 
     private async Task LoadBusesAsync()
     {
+        if (selectedInstitutionId <= 0)
+        {
+            buses.Clear();
+            return;
+        }
+
         var response = await ApiClient.GetBusesAsync(CancellationToken.None);
         buses = response?.Where(x => x.InstitutionId == selectedInstitutionId).ToList() ?? new List<SGA.Web.Models.BusResponse>();
     }
 
     private async Task LoadDriversAsync()
     {
-        var response = await ApiClient.GetDriversAsync(selectedInstitutionId, true, CancellationToken.None);
+        if (selectedInstitutionId <= 0)
+        {
+            drivers.Clear();
+            return;
+        }
+
+        var response = await ApiClient.GetDriversAsync(selectedInstitutionId, false, CancellationToken.None);
         drivers = response?.OrderBy(x => x.FullName).ToList() ?? new List<SGA.Web.Models.DriverLookupResponse>();
 
         if (drivers.Count == 0)
@@ -277,12 +311,19 @@
             return;
         }
 
+        var normalizedPlate = NormalizeLicensePlate(busModel.LicensePlate);
+        if (!IsValidLicensePlate(normalizedPlate))
+        {
+            message = "La placa debe tener formato A123456.";
+            return;
+        }
+
         try
         {
             var busId = await ApiClient.CreateBusAsync(
                 new SGA.Web.Models.CreateBusRequest(
                     selectedInstitutionId,
-                    busModel.LicensePlate.Trim(),
+                    normalizedPlate,
                     busModel.Model.Trim(),
                     busModel.Year,
                     busModel.Capacity,
@@ -388,6 +429,46 @@
         {
             message = ex.Message;
         }
+    }
+
+    private async Task OnInstitutionChangedAsync()
+    {
+        await LoadInstitutionContextAsync();
+    }
+
+    private async Task LoadInstitutionContextAsync()
+    {
+        if (selectedInstitutionId <= 0)
+        {
+            institutionLabel = "No asignada";
+            trips.Clear();
+            routes.Clear();
+            buses.Clear();
+            drivers.Clear();
+            return;
+        }
+
+        var institution = await ApiClient.GetInstitutionByIdAsync(selectedInstitutionId, CancellationToken.None);
+        institutionLabel = institution is null
+            ? $"Institucion ID {selectedInstitutionId}"
+            : $"{institution.Name} ({institution.Code})";
+
+        await LoadRoutesAsync();
+        await LoadBusesAsync();
+        await LoadDriversAsync();
+        await LoadTripsAsync();
+    }
+
+    private static string NormalizeLicensePlate(string value)
+    {
+        return value.Trim().ToUpperInvariant().Replace("-", string.Empty).Replace(" ", string.Empty);
+    }
+
+    private static bool IsValidLicensePlate(string value)
+    {
+        return value.Length == 7 &&
+               char.IsLetter(value[0]) &&
+               value.Skip(1).All(char.IsDigit);
     }
 
     private async Task StartTripAsync() => await ExecuteTripActionAsync(

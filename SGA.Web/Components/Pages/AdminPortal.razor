@@ -59,6 +59,47 @@
     </div>
 
     <article class="sga-card">
+        <h3>Agregar driver de la organizacion</h3>
+        <p>Este flujo esta pensado para registrar drivers rapidamente en la institucion del administrador.</p>
+
+        <div class="sga-form-grid compact">
+            @if (Session.IsMasterAdmin)
+            {
+                <label>Institucion ID</label>
+                <input class="sga-input" type="number" @bind="quickDriver.InstitutionId" />
+            }
+            else
+            {
+                <label>Institucion</label>
+                <input class="sga-input" value="@Session.InstitutionId" readonly />
+            }
+
+            <label>Nombre</label>
+            <input class="sga-input" @bind="quickDriver.FirstName" />
+
+            <label>Apellido</label>
+            <input class="sga-input" @bind="quickDriver.LastName" />
+
+            <label>Correo</label>
+            <input class="sga-input" type="email" @bind="quickDriver.Email" />
+
+            <label>Telefono</label>
+            <input class="sga-input" @bind="quickDriver.PhoneNumber" />
+
+            <label>Cedula</label>
+            <input class="sga-input" @bind="quickDriver.Cedula" />
+
+            <label>Licencia</label>
+            <input class="sga-input" @bind="quickDriver.DriverLicense" />
+
+            <label>Vencimiento licencia</label>
+            <input class="sga-input" type="date" @bind="quickDriver.DriverLicenseExpiryDate" />
+
+            <button class="sga-btn alt" @onclick="CreateOrganizationDriverAsync">Agregar driver</button>
+        </div>
+    </article>
+
+    <article class="sga-card">
         <h3>Registrar usuario por tipo</h3>
         <div class="sga-form-grid compact">
             <label>Tipo de usuario</label>
@@ -217,6 +258,7 @@
     private string createdBy = "web-admin";
     private string userType = "operator";
     private readonly NewUserForm newUser = new();
+    private readonly QuickDriverForm quickDriver = new();
     private List<SGA.Web.Models.InstitutionResponse> institutions = new();
     private string? message;
     private bool redirectToLogin;
@@ -233,6 +275,60 @@
         {
             newUser.InstitutionId = Session.InstitutionId;
             userType = "operator";
+        }
+    }
+
+    private async Task CreateOrganizationDriverAsync()
+    {
+        message = null;
+
+        var institutionId = Session.IsMasterAdmin
+            ? quickDriver.InstitutionId
+            : Session.InstitutionId;
+
+        if (institutionId <= 0 ||
+            string.IsNullOrWhiteSpace(quickDriver.FirstName) ||
+            string.IsNullOrWhiteSpace(quickDriver.LastName) ||
+            string.IsNullOrWhiteSpace(quickDriver.Email) ||
+            string.IsNullOrWhiteSpace(quickDriver.PhoneNumber) ||
+            string.IsNullOrWhiteSpace(quickDriver.Cedula) ||
+            string.IsNullOrWhiteSpace(quickDriver.DriverLicense))
+        {
+            message = "Completa los datos del driver para continuar.";
+            return;
+        }
+
+        try
+        {
+            var roleId = await ApiClient.CreateRoleAsync(
+                new SGA.Web.Models.CreateRoleRequest("Driver", "Rol de Driver", createdBy),
+                CancellationToken.None);
+
+            var personId = await ApiClient.CreatePersonAsync(
+                new SGA.Web.Models.CreatePersonRequest(
+                    institutionId,
+                    roleId,
+                    quickDriver.Email.Trim(),
+                    quickDriver.PhoneNumber.Trim(),
+                    quickDriver.FirstName.Trim(),
+                    quickDriver.LastName.Trim(),
+                    quickDriver.Cedula.Trim(),
+                    createdBy),
+                CancellationToken.None);
+
+            var driverId = await ApiClient.CreateDriverUserAsync(
+                new SGA.Web.Models.CreateDriverUserRequest(
+                    personId,
+                    quickDriver.DriverLicense.Trim(),
+                    new DateTimeOffset(quickDriver.DriverLicenseExpiryDate.Date, TimeSpan.Zero),
+                    createdBy),
+                CancellationToken.None);
+
+            message = $"Driver registrado correctamente con ID {driverId}.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
         }
     }
 
@@ -449,5 +545,17 @@
         public DateTime DriverLicenseExpiryDate { get; set; } = DateTime.Today.AddYears(1);
 
         public int AdminLevel { get; set; } = 2;
+    }
+
+    private sealed class QuickDriverForm
+    {
+        public int InstitutionId { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string Cedula { get; set; } = string.Empty;
+        public string DriverLicense { get; set; } = string.Empty;
+        public DateTime DriverLicenseExpiryDate { get; set; } = DateTime.Today.AddYears(1);
     }
 }
