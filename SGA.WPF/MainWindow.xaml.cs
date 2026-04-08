@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Net.Http;
 using System.Net.Http.Json;
-using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
 namespace SGA.WPF
 {
@@ -115,13 +115,38 @@ namespace SGA.WPF
 
         private static ResilienceOptions LoadResilienceOptions()
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-                .Build();
-
             var options = new ResilienceOptions();
-            configuration.GetSection("Resilience").Bind(options);
+
+            try
+            {
+                var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+                if (File.Exists(configPath))
+                {
+                    var json = File.ReadAllText(configPath);
+                    using var document = JsonDocument.Parse(json);
+                    if (document.RootElement.TryGetProperty("Resilience", out var section))
+                    {
+                        if (section.TryGetProperty("RequestTimeoutSeconds", out var timeoutElement) && timeoutElement.TryGetInt32(out var timeout))
+                        {
+                            options.RequestTimeoutSeconds = timeout;
+                        }
+
+                        if (section.TryGetProperty("MaxRetries", out var retriesElement) && retriesElement.TryGetInt32(out var retries))
+                        {
+                            options.MaxRetries = retries;
+                        }
+
+                        if (section.TryGetProperty("InitialBackoffMs", out var backoffElement) && backoffElement.TryGetInt32(out var backoff))
+                        {
+                            options.InitialBackoffMs = backoff;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Keep defaults when config is missing or malformed.
+            }
 
             if (options.RequestTimeoutSeconds <= 0)
             {
