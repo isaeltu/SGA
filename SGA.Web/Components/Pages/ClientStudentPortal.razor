@@ -1,6 +1,7 @@
 @page "/portal/cliente-estudiante"
 @rendermode InteractiveServer
 @inject SGA.Web.Services.SgaApiClient ApiClient
+@inject IJSRuntime JS
 
 <section class="sga-section">
     <h1>Portal Cliente y Estudiante</h1>
@@ -63,6 +64,17 @@
             <p>QR: @reservation.QrCode</p>
             <p>Estado: @reservation.Status</p>
             <p>Turno: @reservation.QueueNumber</p>
+
+            <div class="sga-ticket-qr">
+                @if (!string.IsNullOrWhiteSpace(ticketQrBase64))
+                {
+                    <img alt="QR de reserva" src="@($"data:image/png;base64,{ticketQrBase64}")" />
+                }
+                <div class="hero-actions">
+                    <button type="button" class="sga-btn" @onclick="DownloadReservationTicketAsync">Descargar ticket</button>
+                    <button type="button" class="sga-btn alt" @onclick="DownloadReservationQrAsync">Descargar QR</button>
+                </div>
+            </div>
         </article>
     }
 </section>
@@ -74,6 +86,7 @@
     private int selectedTripId;
     private string? message;
     private SGA.Web.Models.ReservationResponse? reservation;
+    private string? ticketQrBase64;
 
     private readonly GuestReservationForm guest = new();
 
@@ -138,6 +151,11 @@
                 CancellationToken.None);
 
             reservation = await ApiClient.GetReservationByIdAsync(reservationId, CancellationToken.None);
+            if (reservation is not null)
+            {
+                ticketQrBase64 = GenerateQrBase64(reservation.QrCode);
+            }
+
             message = reservation is null
                 ? $"Reserva creada con ID {reservationId}."
                 : "Reserva creada exitosamente.";
@@ -156,6 +174,38 @@
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
+    }
+
+    private async Task DownloadReservationTicketAsync()
+    {
+        if (reservation is null)
+        {
+            return;
+        }
+
+        var content =
+$"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstado: {reservation.Status}\nTurno: {reservation.QueueNumber}\nQR: {reservation.QrCode}\nGenerado UTC: {reservation.CreatedAt:O}";
+
+        await JS.InvokeVoidAsync("sgaUi.downloadTextFile", $"reserva-{reservation.Id}.txt", content);
+    }
+
+    private async Task DownloadReservationQrAsync()
+    {
+        if (reservation is null || string.IsNullOrWhiteSpace(ticketQrBase64))
+        {
+            return;
+        }
+
+        await JS.InvokeVoidAsync("sgaUi.downloadBase64File", $"reserva-qr-{reservation.Id}.png", "image/png", ticketQrBase64);
+    }
+
+    private static string GenerateQrBase64(string qrValue)
+    {
+        using var generator = new QRCoder.QRCodeGenerator();
+        using var data = generator.CreateQrCode(qrValue, QRCoder.QRCodeGenerator.ECCLevel.Q);
+        var qrCode = new QRCoder.PngByteQRCode(data);
+        var bytes = qrCode.GetGraphic(20);
+        return Convert.ToBase64String(bytes);
     }
 
     private static string? NormalizeOrNull(string? value)

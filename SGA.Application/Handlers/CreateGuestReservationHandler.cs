@@ -175,7 +175,7 @@ namespace SGA.Application.Handlers
 
         private static string GenerateGuestCedula()
         {
-            var numeric = RandomNumberGenerator.GetInt32(0, 100_000_000);
+            var numeric = RandomNumberGenerator.GetInt32(0, 10_000_000);
             var prefix = DateTime.UtcNow.ToString("yyMM");
             return $"{prefix}{numeric:0000000}";
         }

@@ -72,6 +72,10 @@
                 </tbody>
             </table>
         }
+        else
+        {
+            <div class="sga-empty">No hay buses registrados para esta institucion.</div>
+        }
     </article>
 
     <article class="sga-card">
@@ -160,6 +164,10 @@
                     }
                 </tbody>
             </table>
+        }
+        else
+        {
+            <div class="sga-empty">No hay rutas disponibles. Crea una ruta para habilitar viajes.</div>
         }
     </article>
 
@@ -260,19 +268,26 @@
         <p class="sga-alert">@message</p>
     }
 
-    <div class="sga-grid-cards">
-        @foreach (var trip in trips)
-        {
-            <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
-                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
-                <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Driver: @trip.DriverId | Bus: @trip.BusId</p>
-                <p>Estado: @trip.Status</p>
-                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
-                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
-                <p>Disponibles: @trip.AvailableSeats</p>
-            </article>
-        }
-    </div>
+    @if (trips.Count > 0)
+    {
+        <div class="sga-grid-cards">
+            @foreach (var trip in trips)
+            {
+                <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
+                    <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
+                    <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Driver: @trip.DriverId | Bus: @trip.BusId</p>
+                    <p>Estado: @trip.Status</p>
+                    <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                    <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                    <p>Disponibles: @trip.AvailableSeats</p>
+                </article>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="sga-empty">Aun no hay viajes cargados para esta institucion.</div>
+    }
 </section>
 
 @code {

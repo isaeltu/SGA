@@ -206,6 +206,10 @@
                 </tbody>
             </table>
         }
+        else
+        {
+            <div class="sga-empty" style="margin-top:1rem;">No hay instituciones cargadas. Usa el boton de consulta o crea una nueva.</div>
+        }
 
         @if (selectedInstitutionId > 0)
         {
@@ -257,6 +261,10 @@
                     }
                 </tbody>
             </table>
+        }
+        else
+        {
+            <div class="sga-empty" style="margin-top:1rem;">No hay buses cargados en el listado actual.</div>
         }
 
         @if (selectedBusId > 0)

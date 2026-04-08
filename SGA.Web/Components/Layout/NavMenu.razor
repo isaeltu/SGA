@@ -1,48 +1,37 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">SGA ITLA</a>
-    </div>
+﻿<div class="sga-sidebar-header">
+    <img src="icons/transport/bus.svg" alt="SGA" />
+    <span>SGA-ITLA</span>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<nav class="sga-nav" aria-label="Navegacion principal">
+    <NavLink class="sga-nav-link" href="" Match="NavLinkMatch.All">
+        <img src="icons/nav/home.svg" alt="inicio" />
+        <span>Inicio</span>
+    </NavLink>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
-            </NavLink>
-        </div>
+    <NavLink class="sga-nav-link" href="acceso">
+        <img src="icons/nav/users.svg" alt="roles" />
+        <span>Acceso por Rol</span>
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="acceso">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Acceso por Rol
-            </NavLink>
-        </div>
+    <NavLink class="sga-nav-link" href="login-portal?portal=admin">
+        <img src="icons/nav/shield.svg" alt="admin" />
+        <span>Portal Admin</span>
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login-portal?portal=admin">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Portal Admin
-            </NavLink>
-        </div>
+    <NavLink class="sga-nav-link" href="login-portal?portal=operador">
+        <img src="icons/nav/navigation.svg" alt="operador" />
+        <span>Portal Operador</span>
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login-portal?portal=operador">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Portal Operador
-            </NavLink>
-        </div>
+    <NavLink class="sga-nav-link" href="login-portal?portal=driver">
+        <img src="icons/nav/user.svg" alt="driver" />
+        <span>Portal Driver</span>
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login-portal?portal=driver">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Portal Driver
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="portal/cliente-estudiante">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Portal Cliente/Estudiante
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    <NavLink class="sga-nav-link" href="portal/cliente-estudiante">
+        <img src="icons/nav/users.svg" alt="cliente" />
+        <span>Portal Cliente</span>
+    </NavLink>
+</nav>
 

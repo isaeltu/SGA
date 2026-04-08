@@ -1,16 +1,53 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject SGA.Web.Services.PortalSessionService Session
 
-<div class="page">
-    <div class="sidebar">
+<div class="sga-layout">
+    <aside class="sga-sidebar" id="sga-sidebar">
         <NavMenu />
-    </div>
+    </aside>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="/">Panel Operativo Transporte ITLA</a>
-        </div>
+    <main class="sga-main">
+        <header class="sga-header">
+            <div class="sga-header-left">
+                <button class="sga-menu-btn" type="button" onclick="window.sgaUi.toggleSidebar()" aria-label="Abrir menu">
+                    <img src="icons/nav/menu.svg" alt="menu" />
+                </button>
+                <div class="sga-header-brand">
+                    <img src="icons/transport/bus.svg" alt="logo" />
+                    <strong>SGA-ITLA</strong>
+                </div>
+                <nav class="sga-breadcrumbs" aria-label="breadcrumb">
+                    @foreach (var item in BuildBreadcrumbs())
+                    {
+                        if (item.IsActive)
+                        {
+                            <span class="active">@item.Label</span>
+                        }
+                        else
+                        {
+                            <a href="@item.Href">@item.Label</a>
+                        }
+                    }
+                </nav>
+            </div>
 
-        <article class="content px-4">
+            <details class="sga-profile">
+                <summary>
+                    <span class="avatar">@(GetProfileInitial())</span>
+                    <span>@GetProfileName()</span>
+                </summary>
+                <div class="sga-profile-menu">
+                    <p>@(string.IsNullOrWhiteSpace(Session.Email) ? "Sin sesion" : Session.Email)</p>
+                    @if (Session.IsLoggedIn)
+                    {
+                        <button type="button" class="sga-btn ghost" @onclick="SignOut">Cerrar sesion</button>
+                    }
+                </div>
+            </details>
+        </header>
+
+        <article class="sga-content">
             @Body
         </article>
     </main>
@@ -19,5 +56,52 @@
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
+    <a class="dismiss">x</a>
 </div>
+
+@code {
+    private sealed record BreadcrumbItem(string Label, string Href, bool IsActive);
+
+    private IReadOnlyList<BreadcrumbItem> BuildBreadcrumbs()
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+        if (string.IsNullOrWhiteSpace(relative))
+        {
+            return new List<BreadcrumbItem> { new("Inicio", "/", true) };
+        }
+
+        var segments = relative.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var list = new List<BreadcrumbItem> { new("Inicio", "/", false) };
+        var path = string.Empty;
+
+        for (var i = 0; i < segments.Length; i++)
+        {
+            path += "/" + segments[i];
+            var isLast = i == segments.Length - 1;
+            list.Add(new BreadcrumbItem(ToTitle(segments[i]), path, isLast));
+        }
+
+        return list;
+    }
+
+    private static string ToTitle(string value)
+    {
+        var normalized = value.Replace("-", " ");
+        return string.Join(' ', normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => char.ToUpperInvariant(s[0]) + s[1..]));
+    }
+
+    private string GetProfileName()
+        => string.IsNullOrWhiteSpace(Session.FullName) ? "Invitado" : Session.FullName;
+
+    private string GetProfileInitial()
+        => string.IsNullOrWhiteSpace(Session.FullName)
+            ? "?"
+            : Session.FullName.Trim()[0].ToString().ToUpperInvariant();
+
+    private void SignOut()
+    {
+        Session.SignOut();
+        Navigation.NavigateTo("/acceso", forceLoad: false);
+    }
+}

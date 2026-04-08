@@ -4,8 +4,40 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="SGA Operadores" Height="760" Width="1080" MinHeight="700" MinWidth="980"
+        Title="SGA-ITLA Desktop" Height="760" Width="1080" MinHeight="700" MinWidth="980"
+        FontFamily="Segoe UI"
         Background="#F4F0E8">
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#005F73"/>
+        <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#0A4F5A"/>
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#CA6702"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#A4161A"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#E5E7EB"/>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="6,0,12,0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -13,15 +45,16 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Background="#005F73" CornerRadius="12" Padding="10" Grid.Row="0">
+        <Border Background="{StaticResource PrimaryBrush}" CornerRadius="10" Padding="14" Grid.Row="0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="Panel Operador SGA-ITLA" Foreground="White" FontSize="22" FontWeight="Bold" Margin="0,0,20,0" />
+                <TextBlock Text="SGA-ITLA | Console Desktop" Foreground="White" FontSize="20" FontWeight="Bold" Margin="0,0,20,0" />
                 <TextBlock Text="API Base URL:" Foreground="White" VerticalAlignment="Center" />
-                <TextBox x:Name="ApiUrlTextBox" Width="260" Margin="8,0,0,0" Text="https://localhost:7200" />
+                <TextBox x:Name="ApiUrlTextBox" Width="280" Margin="8,0,0,0" Text="https://localhost:7200" />
             </StackPanel>
         </Border>
 
-        <TabControl Grid.Row="1" Margin="0,12,0,12">
+        <Border Grid.Row="1" Margin="0,12,0,12" Background="{StaticResource SurfaceBrush}" CornerRadius="10" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="8">
+        <TabControl>
             <TabItem Header="Instituciones">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
@@ -35,7 +68,7 @@
                         <TextBox x:Name="InstitutionNameTextBox" Width="220" Margin="6,0,12,0" />
                         <TextBlock Text="Creado por" VerticalAlignment="Center" />
                         <TextBox x:Name="InstitutionCreatedByTextBox" Width="160" Margin="6,0,12,0" Text="desktop-operator" />
-                        <Button Content="Crear Institucion" Click="CreateInstitution_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                        <Button Content="Crear Institucion" Click="CreateInstitution_Click" Background="{StaticResource SecondaryBrush}" />
                     </WrapPanel>
                     <WrapPanel Grid.Row="1">
                         <TextBlock Text="ID" VerticalAlignment="Center" />
@@ -59,7 +92,7 @@
                         <TextBlock Text="Capacidad" VerticalAlignment="Center" />
                         <TextBox x:Name="BusCapacityTextBox" Width="80" Margin="6,0,12,0" Text="40" />
                         <TextBox x:Name="BusCreatedByTextBox" Width="150" Margin="6,0,12,0" Text="desktop-operator" />
-                        <Button Content="Registrar" Click="CreateBus_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                        <Button Content="Registrar" Click="CreateBus_Click" Background="{StaticResource SecondaryBrush}" />
                         <Button Content="Refrescar" Click="LoadBuses_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
                     </WrapPanel>
                 </Grid>
@@ -83,7 +116,7 @@
                         <TextBlock Text="Asientos" VerticalAlignment="Center" />
                         <TextBox x:Name="TripSeatsTextBox" Width="70" Margin="6,0,12,0" />
                         <TextBox x:Name="TripCreatedByTextBox" Width="150" Margin="6,0,12,0" Text="desktop-operator" />
-                        <Button Content="Crear Viaje" Click="CreateTrip_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                        <Button Content="Crear Viaje" Click="CreateTrip_Click" Background="{StaticResource SecondaryBrush}" />
                     </WrapPanel>
 
                     <WrapPanel Grid.Row="1">
@@ -93,7 +126,7 @@
                         <Button Content="Consultar" Click="GetTrip_Click" Padding="14,8" Background="#005F73" Foreground="White" />
                         <Button Content="Iniciar" Click="StartTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
                         <Button Content="Completar" Click="CompleteTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
-                        <Button Content="Cancelar" Click="CancelTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="#A4161A" Foreground="White" />
+                        <Button Content="Cancelar" Click="CancelTrip_Click" Padding="14,8" Margin="8,0,0,0" Background="{StaticResource DangerBrush}" />
                     </WrapPanel>
                 </Grid>
             </TabItem>
@@ -114,7 +147,7 @@
                         <TextBlock Text="Asiento" VerticalAlignment="Center" />
                         <TextBox x:Name="ReservationSeatTextBox" Width="85" Margin="6,0,12,0" Text="A1" />
                         <TextBox x:Name="ReservationCreatedByTextBox" Width="150" Margin="6,0,12,0" Text="desktop-user" />
-                        <Button Content="Reserva Rapida" Click="CreateReservationQuick_Click" Padding="14,8" Background="#CA6702" Foreground="White" />
+                        <Button Content="Reserva Rapida" Click="CreateReservationQuick_Click" Background="{StaticResource SecondaryBrush}" />
                         <Button Content="Reserva Guiada + Ticket" Click="CreateReservationGuided_Click" Padding="14,8" Margin="8,0,0,0" Background="#005F73" Foreground="White" />
                     </WrapPanel>
 
@@ -128,8 +161,9 @@
                 </Grid>
             </TabItem>
         </TabControl>
+        </Border>
 
-        <Border Grid.Row="2" Background="White" BorderBrush="#D6CDC2" BorderThickness="1" CornerRadius="8" Padding="10">
+        <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="8" Padding="10">
             <TextBox x:Name="OutputTextBox" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" Height="120" VerticalScrollBarVisibility="Auto" />
         </Border>
     </Grid>
