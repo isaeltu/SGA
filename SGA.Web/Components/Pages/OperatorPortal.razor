@@ -264,7 +264,7 @@
         @foreach (var trip in trips)
         {
             <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
-                <h3>Viaje @trip.Id</h3>
+                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
                 <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Driver: @trip.DriverId | Bus: @trip.BusId</p>
                 <p>Estado: @trip.Status</p>
                 <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>

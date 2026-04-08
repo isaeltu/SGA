@@ -51,7 +51,7 @@
     @if (trip is not null)
     {
         <article class="sga-card">
-            <h3>Viaje @trip.Id</h3>
+            <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
             <p>Estado: @trip.Status</p>
             <p>Bus: @trip.BusId | Chofer: @trip.DriverId | Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName)</p>
             <p>Salida: @trip.ScheduledDepartureTime | Llegada: @trip.ScheduledArrivalTime</p>
