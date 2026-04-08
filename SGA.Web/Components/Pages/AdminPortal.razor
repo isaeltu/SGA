@@ -115,6 +115,37 @@
         </div>
     </article>
 
+    <article class="sga-card">
+        <h3>Instituciones registradas</h3>
+        <p>Puedes cargar el listado completo para validar IDs y nombres antes de crear usuarios.</p>
+        <button class="sga-btn alt" @onclick="LoadInstitutionsAsync">Obtener todas las instituciones</button>
+
+        @if (institutions.Count > 0)
+        {
+            <table class="sga-table" style="margin-top:1rem;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Codigo</th>
+                        <th>Nombre</th>
+                        <th>Activa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var institution in institutions)
+                    {
+                        <tr>
+                            <td>@institution.Id</td>
+                            <td>@institution.Code</td>
+                            <td>@institution.Name</td>
+                            <td>@(institution.IsActive ? "Si" : "No")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </article>
+
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <p class="sga-alert">@message</p>
@@ -168,6 +199,7 @@
     private string createdBy = "web-admin";
     private string userType = "operator";
     private readonly NewUserForm newUser = new();
+    private List<SGA.Web.Models.InstitutionResponse> institutions = new();
     private string? message;
     private bool redirectToLogin;
 
@@ -329,6 +361,24 @@
             }
 
             message = $"Usuario registrado correctamente con Person ID {personId}.";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    private async Task LoadInstitutionsAsync()
+    {
+        message = null;
+
+        try
+        {
+            var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+            institutions = response?.OrderBy(x => x.Name).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+            message = institutions.Count == 0
+                ? "No hay instituciones registradas."
+                : $"Se cargaron {institutions.Count} instituciones.";
         }
         catch (Exception ex)
         {
