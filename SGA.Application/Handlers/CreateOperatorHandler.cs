@@ -18,8 +18,8 @@ namespace SGA.Application.Handlers
 
         public async Task<int> Handle(CreateOperatorCommand request, CancellationToken cancellationToken)
         {
-            var person = await _personRepository.GetByIdAsync(request.PersonId, cancellationToken).ConfigureAwait(false);
-            if (person is null)
+            var personExists = await _personRepository.ExistsByIdAsync(request.PersonId, cancellationToken).ConfigureAwait(false);
+            if (!personExists)
             {
                 throw new KeyNotFoundException($"Person with id {request.PersonId} was not found.");
             }

@@ -21,6 +21,11 @@ namespace SGA.Persistence.Repositories.Users
             _context = context;
         }
 
+        public Task<bool> ExistsByIdAsync(int personId, CancellationToken cancellationToken = default)
+        {
+            return _context.Persons.AsNoTracking().AnyAsync(x => x.Id == personId, cancellationToken);
+        }
+
         public Task<Person?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             var normalizedEmail = email.Trim().ToLowerInvariant();
