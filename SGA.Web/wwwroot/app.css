@@ -90,8 +90,8 @@ a {
     border-radius: 12px;
     padding: 22px;
     display: grid;
-    gap: 10px 12px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .sga-form-grid > label {
@@ -103,7 +103,8 @@ a {
 }
 
 .sga-form-grid.compact {
-    padding: 18px;
+    padding: 16px;
+    gap: 12px 14px;
 }
 
 .sga-form-grid.compact > button,
@@ -122,6 +123,16 @@ a {
     color: var(--sga-muted);
     font-weight: 600;
     margin: 0;
+}
+
+.sga-form-full {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+}
+
+.sga-form-full.single-col {
+    grid-template-columns: 1fr;
 }
 
 .sga-input,

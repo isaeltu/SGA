@@ -6,27 +6,41 @@
     <h1>Registro de Autobuses</h1>
     <p class="lead">Inventario institucional para asignacion de viajes.</p>
 
-    <div class="sga-form-grid">
-        <label>ID Institucion</label>
-        <input @bind="createModel.InstitutionId" type="number" class="sga-input" />
+    <div class="sga-form-full">
+        <div class="sga-field">
+            <label>ID Institucion</label>
+            <input @bind="createModel.InstitutionId" type="number" class="sga-input" />
+        </div>
 
-        <label>Placa</label>
-        <input @bind="createModel.LicensePlate" class="sga-input" />
+        <div class="sga-field">
+            <label>Placa</label>
+            <input @bind="createModel.LicensePlate" class="sga-input" />
+        </div>
 
-        <label>Modelo</label>
-        <input @bind="createModel.Model" class="sga-input" />
+        <div class="sga-field">
+            <label>Modelo</label>
+            <input @bind="createModel.Model" class="sga-input" />
+        </div>
 
-        <label>Anno</label>
-        <input @bind="createModel.Year" type="number" class="sga-input" />
+        <div class="sga-field">
+            <label>Anno</label>
+            <input @bind="createModel.Year" type="number" class="sga-input" />
+        </div>
 
-        <label>Capacidad</label>
-        <input @bind="createModel.Capacity" type="number" class="sga-input" />
+        <div class="sga-field">
+            <label>Capacidad</label>
+            <input @bind="createModel.Capacity" type="number" class="sga-input" />
+        </div>
 
-        <label>Creado por</label>
-        <input @bind="createModel.CreatedBy" class="sga-input" />
+        <div class="sga-field">
+            <label>Creado por</label>
+            <input @bind="createModel.CreatedBy" class="sga-input" />
+        </div>
 
-        <button type="button" class="sga-btn" @onclick="CreateBusAsync">Registrar bus</button>
-        <button type="button" class="sga-btn alt" @onclick="LoadBusesAsync">Refrescar lista</button>
+        <div style="grid-column: 1 / -1; display: flex; gap: 8px;">
+            <button type="button" class="sga-btn" @onclick="CreateBusAsync">Registrar bus</button>
+            <button type="button" class="sga-btn alt" @onclick="LoadBusesAsync">Refrescar lista</button>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(message))

@@ -71,18 +71,26 @@
                     <p class="sga-panel-note">Flujo rapido con IDs directos para operaciones internas.</p>
                 </div>
             </div>
-            <div class="sga-form-grid compact">
-                <label>Trip ID</label>
-                <input @bind="quick.TripId" type="number" class="sga-input" />
+            <div class="sga-form-full single-col">
+                <div class="sga-field">
+                    <label>Trip ID</label>
+                    <input @bind="quick.TripId" type="number" class="sga-input" />
+                </div>
 
-                <label>Person ID</label>
-                <input @bind="quick.PersonId" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Person ID</label>
+                    <input @bind="quick.PersonId" type="number" class="sga-input" />
+                </div>
 
-                <label>Authorization ID</label>
-                <input @bind="quick.AuthorizationId" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Authorization ID</label>
+                    <input @bind="quick.AuthorizationId" type="number" class="sga-input" />
+                </div>
 
-                <label>Creado por</label>
-                <input @bind="quick.CreatedBy" class="sga-input" />
+                <div class="sga-field">
+                    <label>Creado por</label>
+                    <input @bind="quick.CreatedBy" class="sga-input" />
+                </div>
 
                 <button type="button" class="sga-btn" @onclick="CreateQuickReservationAsync">Reservar</button>
             </div>
@@ -95,21 +103,31 @@
                     <p class="sga-panel-note">Genera ticket y QR al confirmar la reserva.</p>
                 </div>
             </div>
-            <div class="sga-form-grid compact">
-                <label>Trip ID</label>
-                <input @bind="guided.TripId" type="number" class="sga-input" />
+            <div class="sga-form-full single-col">
+                <div class="sga-field">
+                    <label>Trip ID</label>
+                    <input @bind="guided.TripId" type="number" class="sga-input" />
+                </div>
 
-                <label>Person ID</label>
-                <input @bind="guided.PersonId" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Person ID</label>
+                    <input @bind="guided.PersonId" type="number" class="sga-input" />
+                </div>
 
-                <label>Authorization ID</label>
-                <input @bind="guided.AuthorizationId" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Authorization ID</label>
+                    <input @bind="guided.AuthorizationId" type="number" class="sga-input" />
+                </div>
 
-                <label>Asiento sugerido</label>
-                <input @bind="guided.SeatCode" class="sga-input" />
+                <div class="sga-field">
+                    <label>Asiento sugerido</label>
+                    <input @bind="guided.SeatCode" class="sga-input" />
+                </div>
 
-                <label>Creado por</label>
-                <input @bind="guided.CreatedBy" class="sga-input" />
+                <div class="sga-field">
+                    <label>Creado por</label>
+                    <input @bind="guided.CreatedBy" class="sga-input" />
+                </div>
 
                 <button type="button" class="sga-btn" @onclick="CreateGuidedReservationAsync">Reservar y generar ticket</button>
             </div>

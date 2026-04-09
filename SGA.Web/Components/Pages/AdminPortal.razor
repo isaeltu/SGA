@@ -85,15 +85,21 @@
     <div class="sga-two-col">
         <article class="sga-card" id="section-institutions">
             <h3>Crear institucion</h3>
-            <div class="sga-form-grid compact">
-                <label>Codigo</label>
-                <input @bind="institutionCode" class="sga-input" />
+            <div class="sga-form-full single-col">
+                <div class="sga-field">
+                    <label>Codigo</label>
+                    <input @bind="institutionCode" class="sga-input" />
+                </div>
 
-                <label>Nombre</label>
-                <input @bind="institutionName" class="sga-input" />
+                <div class="sga-field">
+                    <label>Nombre</label>
+                    <input @bind="institutionName" class="sga-input" />
+                </div>
 
-                <label>Creado por</label>
-                <input @bind="createdBy" class="sga-input" />
+                <div class="sga-field">
+                    <label>Creado por</label>
+                    <input @bind="createdBy" class="sga-input" />
+                </div>
 
                 <button class="sga-btn" @onclick="CreateInstitutionAsync">Crear institucion</button>
             </div>
@@ -101,15 +107,21 @@
 
         <article class="sga-card" id="section-roles">
             <h3>Crear rol</h3>
-            <div class="sga-form-grid compact">
-                <label>Nombre del rol</label>
-                <input @bind="roleName" class="sga-input" />
+            <div class="sga-form-full single-col">
+                <div class="sga-field">
+                    <label>Nombre del rol</label>
+                    <input @bind="roleName" class="sga-input" />
+                </div>
 
-                <label>Descripcion</label>
-                <input @bind="roleDescription" class="sga-input" />
+                <div class="sga-field">
+                    <label>Descripcion</label>
+                    <input @bind="roleDescription" class="sga-input" />
+                </div>
 
-                <label>Creado por</label>
-                <input @bind="createdBy" class="sga-input" />
+                <div class="sga-field">
+                    <label>Creado por</label>
+                    <input @bind="createdBy" class="sga-input" />
+                </div>
 
                 <button class="sga-btn" @onclick="CreateRoleAsync">Crear rol</button>
             </div>
@@ -117,15 +129,21 @@
 
         <article class="sga-card" id="section-permissions">
             <h3>Crear permiso</h3>
-            <div class="sga-form-grid compact">
-                <label>Nombre del permiso</label>
-                <input @bind="permissionName" class="sga-input" />
+            <div class="sga-form-full single-col">
+                <div class="sga-field">
+                    <label>Nombre del permiso</label>
+                    <input @bind="permissionName" class="sga-input" />
+                </div>
 
-                <label>Descripcion</label>
-                <input @bind="permissionDescription" class="sga-input" />
+                <div class="sga-field">
+                    <label>Descripcion</label>
+                    <input @bind="permissionDescription" class="sga-input" />
+                </div>
 
-                <label>Creado por</label>
-                <input @bind="createdBy" class="sga-input" />
+                <div class="sga-field">
+                    <label>Creado por</label>
+                    <input @bind="createdBy" class="sga-input" />
+                </div>
 
                 <button class="sga-btn alt" @onclick="CreatePermissionAsync">Crear permiso</button>
             </div>
@@ -136,113 +154,159 @@
         <h3>Agregar driver de la organizacion</h3>
         <p>Este flujo esta pensado para registrar drivers rapidamente en la institucion del administrador.</p>
 
-        <div class="sga-form-grid compact">
+        <div class="sga-form-full">
             @if (Session.IsMasterAdmin)
             {
-                <label>Institucion ID</label>
-                <input class="sga-input" type="number" @bind="quickDriver.InstitutionId" />
+                <div class="sga-field">
+                    <label>Institucion ID</label>
+                    <input class="sga-input" type="number" @bind="quickDriver.InstitutionId" />
+                </div>
             }
             else
             {
-                <label>Institucion</label>
-                <input class="sga-input" value="@Session.InstitutionId" readonly />
+                <div class="sga-field">
+                    <label>Institucion</label>
+                    <input class="sga-input" value="@Session.InstitutionId" readonly />
+                </div>
             }
 
-            <label>Nombre</label>
-            <input class="sga-input" @bind="quickDriver.FirstName" />
+            <div class="sga-field">
+                <label>Nombre</label>
+                <input class="sga-input" @bind="quickDriver.FirstName" />
+            </div>
 
-            <label>Apellido</label>
-            <input class="sga-input" @bind="quickDriver.LastName" />
+            <div class="sga-field">
+                <label>Apellido</label>
+                <input class="sga-input" @bind="quickDriver.LastName" />
+            </div>
 
-            <label>Correo</label>
-            <input class="sga-input" type="email" @bind="quickDriver.Email" />
+            <div class="sga-field">
+                <label>Correo</label>
+                <input class="sga-input" type="email" @bind="quickDriver.Email" />
+            </div>
 
-            <label>Telefono</label>
-            <input class="sga-input" @bind="quickDriver.PhoneNumber" />
+            <div class="sga-field">
+                <label>Telefono</label>
+                <input class="sga-input" @bind="quickDriver.PhoneNumber" />
+            </div>
 
-            <label>Cedula</label>
-            <input class="sga-input" @bind="quickDriver.Cedula" />
+            <div class="sga-field">
+                <label>Cedula</label>
+                <input class="sga-input" @bind="quickDriver.Cedula" />
+            </div>
 
-            <label>Licencia</label>
-            <input class="sga-input" @bind="quickDriver.DriverLicense" />
+            <div class="sga-field">
+                <label>Licencia</label>
+                <input class="sga-input" @bind="quickDriver.DriverLicense" />
+            </div>
 
-            <label>Vencimiento licencia</label>
-            <input class="sga-input" type="date" @bind="quickDriver.DriverLicenseExpiryDate" />
+            <div class="sga-field">
+                <label>Vencimiento licencia</label>
+                <input class="sga-input" type="date" @bind="quickDriver.DriverLicenseExpiryDate" />
+            </div>
 
-            <button class="sga-btn alt" @onclick="CreateOrganizationDriverAsync">Agregar driver</button>
+            <button class="sga-btn alt" style="grid-column: 1 / -1;" @onclick="CreateOrganizationDriverAsync">Agregar driver</button>
         </div>
     </article>
 
     <article class="sga-card">
         <h3>Registrar usuario por tipo</h3>
-        <div class="sga-form-grid compact">
-            <label>Tipo de usuario</label>
-            <select class="sga-input" @bind="userType">
-                @if (Session.IsMasterAdmin)
-                {
-                    <option value="administrator">Administrador</option>
-                    <option value="operator">Operador</option>
-                    <option value="driver">Driver</option>
-                }
-                else
-                {
-                    <option value="operator">Operador</option>
-                    <option value="driver">Driver</option>
-                }
-            </select>
+        <div class="sga-form-full">
+            <div class="sga-field">
+                <label>Tipo de usuario</label>
+                <select class="sga-input" @bind="userType">
+                    @if (Session.IsMasterAdmin)
+                    {
+                        <option value="administrator">Administrador</option>
+                        <option value="operator">Operador</option>
+                        <option value="driver">Driver</option>
+                    }
+                    else
+                    {
+                        <option value="operator">Operador</option>
+                        <option value="driver">Driver</option>
+                    }
+                </select>
+            </div>
 
             @if (Session.IsMasterAdmin)
             {
-                <label>Institucion ID</label>
-                <input class="sga-input" type="number" @bind="newUser.InstitutionId" />
+                <div class="sga-field">
+                    <label>Institucion ID</label>
+                    <input class="sga-input" type="number" @bind="newUser.InstitutionId" />
+                </div>
             }
             else
             {
-                <label>Institucion asignada</label>
-                <input class="sga-input" value="@Session.InstitutionId" readonly />
+                <div class="sga-field">
+                    <label>Institucion asignada</label>
+                    <input class="sga-input" value="@Session.InstitutionId" readonly />
+                </div>
             }
 
-            <label>Nombre</label>
-            <input class="sga-input" @bind="newUser.FirstName" />
+            <div class="sga-field">
+                <label>Nombre</label>
+                <input class="sga-input" @bind="newUser.FirstName" />
+            </div>
 
-            <label>Apellido</label>
-            <input class="sga-input" @bind="newUser.LastName" />
+            <div class="sga-field">
+                <label>Apellido</label>
+                <input class="sga-input" @bind="newUser.LastName" />
+            </div>
 
-            <label>Correo</label>
-            <input class="sga-input" type="email" @bind="newUser.Email" />
+            <div class="sga-field">
+                <label>Correo</label>
+                <input class="sga-input" type="email" @bind="newUser.Email" />
+            </div>
 
-            <label>Telefono (10 digitos)</label>
-            <input class="sga-input" @bind="newUser.PhoneNumber" />
+            <div class="sga-field">
+                <label>Telefono (10 digitos)</label>
+                <input class="sga-input" @bind="newUser.PhoneNumber" />
+            </div>
 
-            <label>Cedula</label>
-            <input class="sga-input" @bind="newUser.Cedula" />
+            <div class="sga-field">
+                <label>Cedula</label>
+                <input class="sga-input" @bind="newUser.Cedula" />
+            </div>
 
             @if (userType == "operator")
             {
-                <label>Area asignada</label>
-                <input class="sga-input" @bind="newUser.AssignedArea" />
-                <label>Turno</label>
-                <input class="sga-input" type="number" @bind="newUser.ShiftNumber" />
+                <div class="sga-field">
+                    <label>Area asignada</label>
+                    <input class="sga-input" @bind="newUser.AssignedArea" />
+                </div>
+                <div class="sga-field">
+                    <label>Turno</label>
+                    <input class="sga-input" type="number" @bind="newUser.ShiftNumber" />
+                </div>
             }
 
             @if (userType == "driver")
             {
-                <label>Licencia</label>
-                <input class="sga-input" @bind="newUser.DriverLicense" />
-                <label>Vencimiento licencia</label>
-                <input class="sga-input" type="date" @bind="newUser.DriverLicenseExpiryDate" />
+                <div class="sga-field">
+                    <label>Licencia</label>
+                    <input class="sga-input" @bind="newUser.DriverLicense" />
+                </div>
+                <div class="sga-field">
+                    <label>Vencimiento licencia</label>
+                    <input class="sga-input" type="date" @bind="newUser.DriverLicenseExpiryDate" />
+                </div>
             }
 
             @if (userType == "administrator")
             {
-                <label>Nivel admin (1=SuperAdmin, 2=Admin, 3=Moderator)</label>
-                <input class="sga-input" type="number" @bind="newUser.AdminLevel" />
+                <div class="sga-field">
+                    <label>Nivel admin (1=SuperAdmin, 2=Admin, 3=Moderator)</label>
+                    <input class="sga-input" type="number" @bind="newUser.AdminLevel" />
+                </div>
             }
 
-            <label>Creado por</label>
-            <input class="sga-input" @bind="createdBy" />
+            <div class="sga-field">
+                <label>Creado por</label>
+                <input class="sga-input" @bind="createdBy" />
+            </div>
 
-            <button class="sga-btn" @onclick="RegisterUserAsync">Registrar usuario</button>
+            <button class="sga-btn" style="grid-column: 1 / -1;" @onclick="RegisterUserAsync">Registrar usuario</button>
         </div>
     </article>
 
@@ -301,13 +365,19 @@
 
         @if (selectedInstitutionId > 0)
         {
-            <div class="sga-form-grid compact" style="margin-top:1rem;">
-                <label>Codigo (edicion)</label>
-                <input class="sga-input" @bind="institutionEditCode" />
-                <label>Nombre (edicion)</label>
-                <input class="sga-input" @bind="institutionEditName" />
-                <label>Activa</label>
-                <input class="sga-input" type="checkbox" @bind="institutionEditIsActive" />
+            <div class="sga-form-full single-col" style="margin-top:1rem;">
+                <div class="sga-field">
+                    <label>Codigo (edicion)</label>
+                    <input class="sga-input" @bind="institutionEditCode" />
+                </div>
+                <div class="sga-field">
+                    <label>Nombre (edicion)</label>
+                    <input class="sga-input" @bind="institutionEditName" />
+                </div>
+                <div class="sga-field">
+                    <label>Activa</label>
+                    <input class="sga-input" type="checkbox" @bind="institutionEditIsActive" />
+                </div>
                 <button class="sga-btn alt" @onclick="UpdateSelectedInstitutionAsync">Actualizar institucion</button>
             </div>
         }
@@ -371,18 +441,28 @@
 
         @if (selectedBusId > 0)
         {
-            <div class="sga-form-grid compact" style="margin-top:1rem;">
-                <label>Institucion ID</label>
-                <input class="sga-input" type="number" @bind="busEditInstitutionId" />
-                <label>Placa</label>
-                <input class="sga-input" @bind="busEditLicensePlate" />
-                <label>Modelo</label>
-                <input class="sga-input" @bind="busEditModel" />
-                <label>Anio</label>
-                <input class="sga-input" type="number" @bind="busEditYear" />
-                <label>Capacidad</label>
-                <input class="sga-input" type="number" @bind="busEditCapacity" />
-                <button class="sga-btn alt" @onclick="UpdateSelectedBusAsync">Actualizar bus</button>
+            <div class="sga-form-full" style="margin-top:1rem;">
+                <div class="sga-field">
+                    <label>Institucion ID</label>
+                    <input class="sga-input" type="number" @bind="busEditInstitutionId" />
+                </div>
+                <div class="sga-field">
+                    <label>Placa</label>
+                    <input class="sga-input" @bind="busEditLicensePlate" />
+                </div>
+                <div class="sga-field">
+                    <label>Modelo</label>
+                    <input class="sga-input" @bind="busEditModel" />
+                </div>
+                <div class="sga-field">
+                    <label>Anio</label>
+                    <input class="sga-input" type="number" @bind="busEditYear" />
+                </div>
+                <div class="sga-field">
+                    <label>Capacidad</label>
+                    <input class="sga-input" type="number" @bind="busEditCapacity" />
+                </div>
+                <button class="sga-btn alt" style="grid-column: 1 / -1;" @onclick="UpdateSelectedBusAsync">Actualizar bus</button>
             </div>
         }
     </article>

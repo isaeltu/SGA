@@ -6,32 +6,48 @@
     <h1>Operacion de Viajes</h1>
     <p class="lead">Crear, iniciar, completar o cancelar viajes del servicio.</p>
 
-    <div class="sga-form-grid">
-        <label>Route ID</label>
-        <input @bind="createModel.RouteId" type="number" class="sga-input" />
+    <div class="sga-form-full">
+        <div class="sga-field">
+            <label>Route ID</label>
+            <input @bind="createModel.RouteId" type="number" class="sga-input" />
+        </div>
 
-        <label>Driver ID</label>
-        <input @bind="createModel.DriverId" type="number" class="sga-input" />
+        <div class="sga-field">
+            <label>Driver ID</label>
+            <input @bind="createModel.DriverId" type="number" class="sga-input" />
+        </div>
 
-        <label>Bus ID</label>
-        <input @bind="createModel.BusId" type="number" class="sga-input" />
+        <div class="sga-field">
+            <label>Bus ID</label>
+            <input @bind="createModel.BusId" type="number" class="sga-input" />
+        </div>
 
-        <label>Institution ID (opcional)</label>
-        <input @bind="createModel.InstitutionId" type="number" class="sga-input" />
+        <div class="sga-field">
+            <label>Institution ID (opcional)</label>
+            <input @bind="createModel.InstitutionId" type="number" class="sga-input" />
+        </div>
 
-        <label>Salida programada</label>
-        <input @bind="createModel.ScheduledDepartureDate" type="date" class="sga-input" />
+        <div class="sga-field">
+            <label>Salida programada</label>
+            <input @bind="createModel.ScheduledDepartureDate" type="date" class="sga-input" />
+        </div>
 
-        <label>Llegada programada</label>
-        <input @bind="createModel.ScheduledArrivalDate" type="date" class="sga-input" />
+        <div class="sga-field">
+            <label>Llegada programada</label>
+            <input @bind="createModel.ScheduledArrivalDate" type="date" class="sga-input" />
+        </div>
 
-        <label>Asientos disponibles (opcional)</label>
-        <input @bind="createModel.AvailableSeats" type="number" class="sga-input" />
+        <div class="sga-field">
+            <label>Asientos disponibles (opcional)</label>
+            <input @bind="createModel.AvailableSeats" type="number" class="sga-input" />
+        </div>
 
-        <label>Creado por</label>
-        <input @bind="createModel.CreatedBy" class="sga-input" />
+        <div class="sga-field">
+            <label>Creado por</label>
+            <input @bind="createModel.CreatedBy" class="sga-input" />
+        </div>
 
-        <button class="sga-btn" type="button" @onclick="CreateTripAsync">Crear viaje</button>
+        <button class="sga-btn" type="button" style="grid-column: 1 / -1;" @onclick="CreateTripAsync">Crear viaje</button>
     </div>
 
     <div class="sga-inline-actions">
