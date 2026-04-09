@@ -106,6 +106,24 @@ a {
     padding: 18px;
 }
 
+.sga-form-grid.compact > button,
+.sga-form-grid.compact > .sga-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
+.sga-field {
+    display: grid;
+    gap: 6px;
+}
+
+.sga-field label {
+    font-size: 12px;
+    color: var(--sga-muted);
+    font-weight: 600;
+    margin: 0;
+}
+
 .sga-input,
 textarea.sga-input,
 select.sga-input {
@@ -645,4 +663,15 @@ select.sga-input {
 
 @keyframes sga-spin {
     to { transform: rotate(360deg); }
+}
+
+.sga-global-error {
+    margin: 1rem;
+    background: #fff3cd;
+    border: 1px solid #f4dda0;
+    border-left: 4px solid #ca6702;
+    border-radius: 10px;
+    color: #6b4f00;
+    padding: 0.9rem 1rem;
+    font-size: 0.95rem;
 }

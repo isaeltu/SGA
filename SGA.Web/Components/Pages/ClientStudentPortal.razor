@@ -127,20 +127,30 @@
             </div>
         </div>
 
-        <div class="sga-form-grid compact">
-            <label>Nombre (opcional)</label>
-            <input @bind="guest.FirstName" class="sga-input" />
+        <div class="sga-two-col">
+            <div class="sga-field">
+                <label>Nombre (opcional)</label>
+                <input @bind="guest.FirstName" class="sga-input" />
+            </div>
 
-            <label>Apellido (opcional)</label>
-            <input @bind="guest.LastName" class="sga-input" />
+            <div class="sga-field">
+                <label>Apellido (opcional)</label>
+                <input @bind="guest.LastName" class="sga-input" />
+            </div>
 
-            <label>Correo (opcional)</label>
-            <input @bind="guest.Email" type="email" class="sga-input" />
+            <div class="sga-field">
+                <label>Correo (opcional)</label>
+                <input @bind="guest.Email" type="email" class="sga-input" />
+            </div>
 
-            <label>Telefono (opcional)</label>
-            <input @bind="guest.PhoneNumber" placeholder="8091234567" class="sga-input" />
+            <div class="sga-field">
+                <label>Telefono (opcional)</label>
+                <input @bind="guest.PhoneNumber" placeholder="8091234567" class="sga-input" />
+            </div>
 
-            <button class="sga-btn" @onclick="CreateGuestReservationAsync">Reservar ahora</button>
+            <div>
+                <button class="sga-btn" @onclick="CreateGuestReservationAsync">Reservar ahora</button>
+            </div>
         </div>
     </article>
 
@@ -258,12 +268,14 @@
         if (selectedInstitutionId <= 0)
         {
             message = "Selecciona una institucion.";
+            Ui.ShowWarning("Datos incompletos", message);
             return;
         }
 
         if (selectedTripId <= 0)
         {
             message = "Selecciona un viaje disponible.";
+            Ui.ShowWarning("Datos incompletos", message);
             return;
         }
 
@@ -320,7 +332,7 @@
 $"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstado: {reservation.Status}\nTurno: {reservation.QueueNumber}\nQR: {reservation.QrCode}\nGenerado UTC: {reservation.CreatedAt:O}";
 
         await JS.InvokeVoidAsync("sgaUi.downloadTextFile", $"reserva-{reservation.Id}.txt", content);
-    Ui.ShowSuccess("Ticket descargado", "El archivo de ticket se descargo correctamente.");
+        Ui.ShowSuccess("Ticket descargado", "El archivo de ticket se descargo correctamente.");
     }
 
     private async Task DownloadReservationQrAsync()

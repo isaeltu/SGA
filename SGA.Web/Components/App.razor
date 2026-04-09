@@ -13,7 +13,16 @@
 </head>
 
 <body>
-    <Routes />
+    <ErrorBoundary>
+        <ChildContent>
+            <Routes />
+        </ChildContent>
+        <ErrorContent>
+            <div class="sga-global-error">
+                Ocurrio un error inesperado en la interfaz. Recarga la pagina para continuar.
+            </div>
+        </ErrorContent>
+    </ErrorBoundary>
     <UiFeedbackHost />
     <script src="js/sga-ui.js"></script>
     <script src="_framework/blazor.web.js"></script>

@@ -513,6 +513,10 @@
             ? quickDriver.InstitutionId
             : Session.InstitutionId;
 
+        var normalizedPhone = NormalizeDigits(quickDriver.PhoneNumber);
+        var normalizedCedula = NormalizeDigits(quickDriver.Cedula);
+        var expiryAtEndOfDayUtc = new DateTimeOffset(quickDriver.DriverLicenseExpiryDate.Date.AddDays(1).AddSeconds(-1), TimeSpan.Zero);
+
         if (institutionId <= 0 ||
             string.IsNullOrWhiteSpace(quickDriver.FirstName) ||
             string.IsNullOrWhiteSpace(quickDriver.LastName) ||
@@ -522,6 +526,28 @@
             string.IsNullOrWhiteSpace(quickDriver.DriverLicense))
         {
             message = "Completa los datos del driver para continuar.";
+            Ui.ShowWarning("Datos incompletos", message);
+            return;
+        }
+
+        if (normalizedCedula.Length != 11)
+        {
+            message = "La cedula del driver debe tener exactamente 11 digitos.";
+            Ui.ShowWarning("Cedula invalida", message);
+            return;
+        }
+
+        if (normalizedPhone.Length != 10)
+        {
+            message = "El telefono del driver debe tener exactamente 10 digitos.";
+            Ui.ShowWarning("Telefono invalido", message);
+            return;
+        }
+
+        if (expiryAtEndOfDayUtc <= DateTimeOffset.UtcNow)
+        {
+            message = "La licencia del driver debe tener una fecha de vencimiento futura.";
+            Ui.ShowWarning("Licencia invalida", message);
             return;
         }
 
@@ -536,10 +562,10 @@
                     institutionId,
                     roleId,
                     quickDriver.Email.Trim(),
-                    quickDriver.PhoneNumber.Trim(),
+                    normalizedPhone,
                     quickDriver.FirstName.Trim(),
                     quickDriver.LastName.Trim(),
-                    quickDriver.Cedula.Trim(),
+                    normalizedCedula,
                     createdBy),
                 CancellationToken.None);
 
@@ -547,12 +573,20 @@
                 new SGA.Web.Models.CreateDriverUserRequest(
                     personId,
                     quickDriver.DriverLicense.Trim(),
-                    new DateTimeOffset(quickDriver.DriverLicenseExpiryDate.Date, TimeSpan.Zero),
+                    expiryAtEndOfDayUtc,
                     createdBy),
                 CancellationToken.None);
 
             message = $"Driver registrado correctamente con ID {driverId}.";
             Ui.ShowSuccess("Driver creado", message);
+            await LoadSummaryAsync();
+            quickDriver.FirstName = string.Empty;
+            quickDriver.LastName = string.Empty;
+            quickDriver.Email = string.Empty;
+            quickDriver.PhoneNumber = string.Empty;
+            quickDriver.Cedula = string.Empty;
+            quickDriver.DriverLicense = string.Empty;
+            quickDriver.DriverLicenseExpiryDate = DateTime.Today.AddYears(1);
         }
         catch (Exception ex)
         {
@@ -669,6 +703,9 @@
             newUser.InstitutionId = Session.InstitutionId;
         }
 
+        var normalizedPhone = NormalizeDigits(newUser.PhoneNumber);
+        var normalizedCedula = NormalizeDigits(newUser.Cedula);
+
         if (newUser.InstitutionId <= 0 ||
             string.IsNullOrWhiteSpace(newUser.FirstName) ||
             string.IsNullOrWhiteSpace(newUser.LastName) ||
@@ -677,6 +714,21 @@
             string.IsNullOrWhiteSpace(newUser.Cedula))
         {
             message = "Completa los datos base del usuario.";
+            Ui.ShowWarning("Datos incompletos", message);
+            return;
+        }
+
+        if (normalizedCedula.Length != 11)
+        {
+            message = "La cedula debe tener exactamente 11 digitos.";
+            Ui.ShowWarning("Cedula invalida", message);
+            return;
+        }
+
+        if (normalizedPhone.Length != 10)
+        {
+            message = "El telefono debe tener exactamente 10 digitos.";
+            Ui.ShowWarning("Telefono invalido", message);
             return;
         }
 
@@ -699,10 +751,10 @@
                     newUser.InstitutionId,
                     roleId,
                     newUser.Email.Trim(),
-                    newUser.PhoneNumber.Trim(),
+                    normalizedPhone,
                     newUser.FirstName.Trim(),
                     newUser.LastName.Trim(),
-                    newUser.Cedula.Trim(),
+                    normalizedCedula,
                     createdBy),
                 CancellationToken.None);
 
@@ -718,11 +770,19 @@
                         CancellationToken.None);
                     break;
                 case "driver":
+                    var driverExpiryAtEndOfDayUtc = new DateTimeOffset(newUser.DriverLicenseExpiryDate.Date.AddDays(1).AddSeconds(-1), TimeSpan.Zero);
+                    if (driverExpiryAtEndOfDayUtc <= DateTimeOffset.UtcNow)
+                    {
+                        message = "La licencia del driver debe tener una fecha de vencimiento futura.";
+                        Ui.ShowWarning("Licencia invalida", message);
+                        return;
+                    }
+
                     await ApiClient.CreateDriverUserAsync(
                         new SGA.Web.Models.CreateDriverUserRequest(
                             personId,
                             string.IsNullOrWhiteSpace(newUser.DriverLicense) ? "LIC-NA" : newUser.DriverLicense,
-                            new DateTimeOffset(newUser.DriverLicenseExpiryDate.Date, TimeSpan.Zero),
+                            driverExpiryAtEndOfDayUtc,
                             createdBy),
                         CancellationToken.None);
                     break;
@@ -862,13 +922,13 @@
             return;
         }
 
-        if (!await ConfirmActionAsync("Eliminar esta institucion? Esta accion no se puede deshacer."))
-        {
-            return;
-        }
-
         try
         {
+            if (!await ConfirmActionAsync("Eliminar esta institucion? Esta accion no se puede deshacer."))
+            {
+                return;
+            }
+
             await ApiClient.DeleteInstitutionAsync(institutionId, CancellationToken.None);
             message = "Institucion eliminada correctamente.";
                     Ui.ShowWarning("Institucion eliminada", message);
@@ -993,13 +1053,13 @@
             return;
         }
 
-        if (!await ConfirmActionAsync("Eliminar este bus? Esta accion no se puede deshacer."))
-        {
-            return;
-        }
-
         try
         {
+            if (!await ConfirmActionAsync("Eliminar este bus? Esta accion no se puede deshacer."))
+            {
+                return;
+            }
+
             await ApiClient.DeleteBusAsync(busId, CancellationToken.None);
             message = "Bus eliminado correctamente.";
                     Ui.ShowWarning("Bus eliminado", message);
@@ -1019,6 +1079,9 @@
 
     private Task<bool> ConfirmActionAsync(string message)
         => JS.InvokeAsync<bool>("sgaUi.confirmAction", message).AsTask();
+
+    private static string NormalizeDigits(string value)
+        => new string(value.Where(char.IsDigit).ToArray());
 
     private sealed class NewUserForm
     {
