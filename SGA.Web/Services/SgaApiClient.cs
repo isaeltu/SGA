@@ -176,19 +176,25 @@ public sealed class SgaApiClient
         return await response.Content.ReadFromJsonAsync<PortalLoginResponse>(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<MasterOtpRequestResponse?> RequestMasterOtpAsync(MasterOtpRequest request, CancellationToken cancellationToken)
+    public async Task<OtpRequestResponse?> RequestOtpAsync(OtpRequest request, CancellationToken cancellationToken)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/auth/master/request-otp", request, cancellationToken).ConfigureAwait(false);
+        var response = await _httpClient.PostAsJsonAsync("api/auth/request-otp", request, cancellationToken).ConfigureAwait(false);
         await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
-        return await response.Content.ReadFromJsonAsync<MasterOtpRequestResponse>(cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<OtpRequestResponse>(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<PortalLoginResponse?> VerifyMasterOtpAsync(MasterOtpVerifyRequest request, CancellationToken cancellationToken)
+    public async Task<PortalLoginResponse?> VerifyOtpAsync(OtpVerifyRequest request, CancellationToken cancellationToken)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/auth/master/verify-otp", request, cancellationToken).ConfigureAwait(false);
+        var response = await _httpClient.PostAsJsonAsync("api/auth/verify-otp", request, cancellationToken).ConfigureAwait(false);
         await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
         return await response.Content.ReadFromJsonAsync<PortalLoginResponse>(cancellationToken).ConfigureAwait(false);
     }
+
+    public Task<OtpRequestResponse?> RequestMasterOtpAsync(MasterOtpRequest request, CancellationToken cancellationToken)
+        => RequestOtpAsync(new OtpRequest(request.Email), cancellationToken);
+
+    public Task<PortalLoginResponse?> VerifyMasterOtpAsync(MasterOtpVerifyRequest request, CancellationToken cancellationToken)
+        => VerifyOtpAsync(new OtpVerifyRequest(request.Email, request.Code), cancellationToken);
 
     public async Task<int> CreatePersonAsync(CreatePersonRequest request, CancellationToken cancellationToken)
     {

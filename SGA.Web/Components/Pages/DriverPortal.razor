@@ -3,47 +3,149 @@
 @inject SGA.Web.Services.SgaApiClient ApiClient
 @inject SGA.Web.Services.PortalSessionService Session
 @inject NavigationManager Navigation
+@inject SGA.Web.Services.UiFeedbackService Ui
 
 <section class="sga-section">
-    <h1>Portal Driver</h1>
-    <p class="lead">Consulta viajes activos por institucion y ejecuta acciones operativas.</p>
-
-    <div class="sga-form-grid">
-        <label>Institucion</label>
-        <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadTripsAsync">
-            <option value="0">Selecciona una institucion</option>
-            @foreach (var institution in institutions)
-            {
-                <option value="@institution.Id">@institution.Name (@institution.Code)</option>
-            }
-        </select>
+    <div>
+        <h1>Portal Driver</h1>
+        <p class="lead">Consulta viajes activos por institucion y ejecuta acciones operativas.</p>
     </div>
 
-    <div class="sga-inline-actions operator-actions">
-        <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
-        <input @bind="modifiedBy" class="sga-input" placeholder="Driver usuario" />
-        <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
-        <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
-        <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+    <div class="sga-metrics-grid">
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/navigation.svg" alt="Viajes" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Viajes</span>
+                <div class="sga-metric-value">@trips.Count</div>
+                <p class="sga-metric-copy">Viajes disponibles en el contexto actual.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-trips">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Revisar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/map-pin.svg" alt="Ruta" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Institucion</span>
+                <div class="sga-metric-value">@(selectedInstitutionId > 0 ? selectedInstitutionId : 0)</div>
+                <p class="sga-metric-copy">Contexto de operacion del driver.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-context">
+                    <img src="icons/nav/pencil.svg" alt="" />
+                    Cambiar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/plus.svg" alt="Seleccion" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Trip seleccionado</span>
+                <div class="sga-metric-value">@(selectedTripId > 0 ? selectedTripId : 0)</div>
+                <p class="sga-metric-copy">ID objetivo para iniciar, completar o cancelar.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-actions">
+                    <img src="icons/nav/navigation.svg" alt="" />
+                    Operar
+                </a>
+            </div>
+        </article>
     </div>
+
+    <article class="sga-card" id="section-context">
+        <div class="sga-card-header">
+            <div>
+                <h3>Contexto de trabajo</h3>
+                <p class="sga-panel-note">Selecciona la institucion para consultar viajes disponibles.</p>
+            </div>
+            <div class="sga-row-actions">
+                <button type="button" class="sga-icon-btn alt" @onclick="LoadTripsAsync" title="Recargar viajes">
+                    <img src="icons/nav/eye.svg" alt="" />
+                </button>
+            </div>
+        </div>
+
+        <div class="sga-form-grid compact">
+            <label>Institucion</label>
+            <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadTripsAsync">
+                <option value="0">Selecciona una institucion</option>
+                @foreach (var institution in institutions)
+                {
+                    <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+                }
+            </select>
+        </div>
+    </article>
+
+    <article class="sga-card" id="section-actions">
+        <div class="sga-card-header">
+            <div>
+                <h3>Acciones operativas</h3>
+                <p class="sga-panel-note">Aplica cambios de estado al viaje seleccionado.</p>
+            </div>
+        </div>
+
+        <div class="sga-inline-actions operator-actions">
+            <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
+            <input @bind="modifiedBy" class="sga-input" placeholder="Driver usuario" />
+            <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
+            <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
+            <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+        </div>
+    </article>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <p class="sga-alert">@message</p>
     }
 
-    <div class="sga-grid-cards">
-        @foreach (var trip in trips)
+    <article class="sga-card" id="section-trips">
+        <div class="sga-card-header">
+            <div>
+                <h3>Listado de viajes</h3>
+                <p class="sga-panel-note">Haz click en una tarjeta para autoseleccionar el Trip ID.</p>
+            </div>
+        </div>
+
+        @if (trips.Count > 0)
         {
-            <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
-                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
-                <p>Estado: @trip.Status</p>
-                <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Bus: @trip.BusId</p>
-                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
-                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
-            </article>
+            <div class="sga-grid-cards">
+                @foreach (var trip in trips)
+                {
+                    <article class="sga-card sga-trip-card" @onclick="() => SelectTrip(trip.Id)">
+                        <div class="sga-card-header">
+                            <div>
+                                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
+                                <p class="sga-panel-note">Viaje #@trip.Id | Bus @trip.BusId</p>
+                            </div>
+                            <span class="sga-status-pill">@trip.Status</span>
+                        </div>
+
+                        <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName)</p>
+                        <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                        <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                        <p>Disponibles: @trip.AvailableSeats</p>
+                    </article>
+                }
+            </div>
         }
-    </div>
+        else
+        {
+            <div class="sga-empty">No hay viajes disponibles para la institucion seleccionada.</div>
+        }
+    </article>
 </section>
 
 @code {
@@ -57,14 +159,24 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var busy = Ui.BeginBusy();
+
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Driver))
         {
             redirectToLogin = true;
             return;
         }
 
-        var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
-        institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+        try
+        {
+            var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+            institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            Ui.ShowError("No se pudieron cargar instituciones", ex.Message);
+        }
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -79,30 +191,56 @@
 
     private async Task LoadTripsAsync()
     {
+        using var busy = Ui.BeginBusy();
+
         if (selectedInstitutionId <= 0)
         {
             trips.Clear();
             return;
         }
 
-        var response = await ApiClient.GetTripsAsync(selectedInstitutionId, true, CancellationToken.None);
-        trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+        try
+        {
+            var response = await ApiClient.GetTripsAsync(selectedInstitutionId, true, CancellationToken.None);
+            trips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+            if (trips.Count == 0)
+            {
+                Ui.ShowInfo("Sin viajes", "No hay viajes disponibles en esta institucion.");
+            }
+        }
+        catch (Exception ex)
+        {
+            trips.Clear();
+            message = ex.Message;
+            Ui.ShowError("No se pudieron cargar viajes", ex.Message);
+        }
+    }
+
+    private void SelectTrip(int tripId)
+    {
+        selectedTripId = tripId;
+        message = $"Trip {tripId} seleccionado.";
+        Ui.ShowInfo("Viaje seleccionado", message);
     }
 
     private async Task StartTripAsync() => await ExecuteTripActionAsync(
         () => ApiClient.StartTripAsync(new SGA.Web.Models.StartTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
-        "Viaje iniciado por el driver.");
+        "Viaje iniciado por el driver.",
+        "Viaje iniciado");
 
     private async Task CompleteTripAsync() => await ExecuteTripActionAsync(
         () => ApiClient.CompleteTripAsync(new SGA.Web.Models.CompleteTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
-        "Viaje completado por el driver.");
+        "Viaje completado por el driver.",
+        "Viaje completado");
 
     private async Task CancelTripAsync() => await ExecuteTripActionAsync(
         () => ApiClient.CancelTripAsync(new SGA.Web.Models.CancelTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
-        "Viaje cancelado por el driver.");
+        "Viaje cancelado por el driver.",
+        "Viaje cancelado");
 
-    private async Task ExecuteTripActionAsync(Func<Task> action, string successMessage)
+    private async Task ExecuteTripActionAsync(Func<Task> action, string successMessage, string toastTitle)
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedTripId <= 0)
         {
@@ -114,11 +252,13 @@
         {
             await action();
             message = successMessage;
+            Ui.ShowSuccess(toastTitle, successMessage);
             await LoadTripsAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError($"No se pudo {toastTitle.ToLowerInvariant()}", ex.Message);
         }
     }
 }

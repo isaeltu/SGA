@@ -43,25 +43,13 @@ public class AuthController : ControllerBase
             return BadRequest("Email is required.");
         }
 
-        try
+        var profile = await BuildPortalProfileByEmailAsync(request.Email, cancellationToken).ConfigureAwait(false);
+        if (profile is null)
         {
-            var profile = await BuildPortalProfileByEmailAsync(request.Email, cancellationToken).ConfigureAwait(false);
-            if (profile is null)
-            {
-                return NotFound("No existe un usuario con ese correo.");
-            }
+            return NotFound("No existe un usuario con ese correo.");
+        }
 
-            return Ok(profile);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(StatusCodes.Status499ClientClosedRequest, "Solicitud cancelada.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error while validating portal login profile for {Email}", request.Email);
-            return StatusCode(StatusCodes.Status500InternalServerError, "Ocurrio un error validando el perfil.");
-        }
+        return Ok(profile);
     }
 
     [HttpPost("request-otp")]
@@ -87,54 +75,42 @@ public class AuthController : ControllerBase
             return BadRequest("Email is required.");
         }
 
-        try
+        var normalizedEmail = rawEmail.Trim().ToLowerInvariant();
+        var profile = await BuildPortalProfileByEmailAsync(normalizedEmail, cancellationToken).ConfigureAwait(false);
+        if (profile is null)
         {
-            var normalizedEmail = rawEmail.Trim().ToLowerInvariant();
-            var profile = await BuildPortalProfileByEmailAsync(normalizedEmail, cancellationToken).ConfigureAwait(false);
-            if (profile is null)
-            {
-                return NotFound("No existe un usuario con ese correo.");
-            }
-
-            var otp = Random.Shared.Next(100000, 999999).ToString();
-            var nowUtc = DateTime.UtcNow;
-            var expiresAtUtc = nowUtc.AddMinutes(OtpTtlMinutes);
-
-            var entry = new LoginOtpEntry
-            {
-                CodeHash = HashOtp(otp),
-                ExpiresAtUtc = expiresAtUtc,
-                Attempts = 0,
-                Profile = profile
-            };
-
-            _memoryCache.Set(GetOtpCacheKey(normalizedEmail), entry, TimeSpan.FromMinutes(OtpTtlMinutes));
-
-            var sentByEmail = await SendOtpByEmailAsync(normalizedEmail, otp, cancellationToken).ConfigureAwait(false);
-            if (sentByEmail)
-            {
-                return Ok(new OtpRequestResponse("Codigo enviado por correo. Expira en 15 minutos.", null));
-            }
-
-            if (IsDevOtpFallbackEnabled())
-            {
-                _logger.LogWarning("SMTP is not configured. Returning development OTP fallback.");
-                return Ok(new OtpRequestResponse("SMTP no configurado. Usando codigo temporal de desarrollo.", otp));
-            }
-
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                new OtpRequestResponse("SMTP no configurado en servidor. Contacta al administrador.", null));
+            return NotFound("No existe un usuario con ese correo.");
         }
-        catch (OperationCanceledException)
+
+        var otp = Random.Shared.Next(100000, 999999).ToString();
+        var nowUtc = DateTime.UtcNow;
+        var expiresAtUtc = nowUtc.AddMinutes(OtpTtlMinutes);
+
+        var entry = new LoginOtpEntry
         {
-            return StatusCode(StatusCodes.Status499ClientClosedRequest, "Solicitud cancelada.");
-        }
-        catch (Exception ex)
+            CodeHash = HashOtp(otp),
+            ExpiresAtUtc = expiresAtUtc,
+            Attempts = 0,
+            Profile = profile
+        };
+
+        _memoryCache.Set(GetOtpCacheKey(normalizedEmail), entry, TimeSpan.FromMinutes(OtpTtlMinutes));
+
+        var sentByEmail = await SendOtpByEmailAsync(normalizedEmail, otp, cancellationToken).ConfigureAwait(false);
+        if (sentByEmail)
         {
-            _logger.LogError(ex, "Unexpected error while requesting OTP for {Email}", rawEmail);
-            return StatusCode(StatusCodes.Status500InternalServerError, new OtpRequestResponse("No se pudo generar el OTP en este momento.", null));
+            return Ok(new OtpRequestResponse("Codigo enviado por correo. Expira en 15 minutos.", null));
         }
+
+        if (IsDevOtpFallbackEnabled())
+        {
+            _logger.LogWarning("SMTP is not configured. Returning development OTP fallback.");
+            return Ok(new OtpRequestResponse("SMTP no configurado. Usando codigo temporal de desarrollo.", otp));
+        }
+
+        return StatusCode(
+            StatusCodes.Status500InternalServerError,
+            new OtpRequestResponse("SMTP no configurado en servidor. Contacta al administrador.", null));
     }
 
     private IActionResult VerifyOtpInternal(string? rawEmail, string? rawCode)
@@ -149,54 +125,46 @@ public class AuthController : ControllerBase
             return BadRequest("Ingresa un codigo OTP valido de 6 digitos.");
         }
 
-        try
+        var normalizedEmail = rawEmail.Trim().ToLowerInvariant();
+        var code = rawCode.Trim();
+        var cacheKey = GetOtpCacheKey(normalizedEmail);
+
+        if (!_memoryCache.TryGetValue(cacheKey, out LoginOtpEntry? entry) || entry is null)
         {
-            var normalizedEmail = rawEmail.Trim().ToLowerInvariant();
-            var code = rawCode.Trim();
-            var cacheKey = GetOtpCacheKey(normalizedEmail);
+            return BadRequest("El codigo expiro o no fue generado. Solicita uno nuevo.");
+        }
 
-            if (!_memoryCache.TryGetValue(cacheKey, out LoginOtpEntry? entry) || entry is null)
-            {
-                return BadRequest("El codigo expiro o no fue generado. Solicita uno nuevo.");
-            }
-
-            if (DateTime.UtcNow > entry.ExpiresAtUtc)
-            {
-                _memoryCache.Remove(cacheKey);
-                return BadRequest("El codigo expiro. Solicita uno nuevo.");
-            }
-
-            if (entry.Attempts >= OtpMaxAttempts)
-            {
-                _memoryCache.Remove(cacheKey);
-                return Unauthorized("Demasiados intentos. Solicita un nuevo codigo.");
-            }
-
-            var incomingHash = HashOtp(code);
-            if (!string.Equals(incomingHash, entry.CodeHash, StringComparison.Ordinal))
-            {
-                entry.Attempts++;
-                var ttl = entry.ExpiresAtUtc - DateTime.UtcNow;
-                if (ttl <= TimeSpan.Zero)
-                {
-                    _memoryCache.Remove(cacheKey);
-                }
-                else
-                {
-                    _memoryCache.Set(cacheKey, entry, ttl);
-                }
-
-                return Unauthorized("Codigo invalido.");
-            }
-
+        if (DateTime.UtcNow > entry.ExpiresAtUtc)
+        {
             _memoryCache.Remove(cacheKey);
-            return Ok(entry.Profile);
+            return BadRequest("El codigo expiro. Solicita uno nuevo.");
         }
-        catch (Exception ex)
+
+        if (entry.Attempts >= OtpMaxAttempts)
         {
-            _logger.LogError(ex, "Unexpected error while verifying OTP for {Email}", rawEmail);
-            return StatusCode(StatusCodes.Status500InternalServerError, "No se pudo validar el OTP en este momento.");
+            _memoryCache.Remove(cacheKey);
+            return Unauthorized("Demasiados intentos. Solicita un nuevo codigo.");
         }
+
+        var incomingHash = HashOtp(code);
+        if (!string.Equals(incomingHash, entry.CodeHash, StringComparison.Ordinal))
+        {
+            entry.Attempts++;
+            var ttl = entry.ExpiresAtUtc - DateTime.UtcNow;
+            if (ttl <= TimeSpan.Zero)
+            {
+                _memoryCache.Remove(cacheKey);
+            }
+            else
+            {
+                _memoryCache.Set(cacheKey, entry, ttl);
+            }
+
+            return Unauthorized("Codigo invalido.");
+        }
+
+        _memoryCache.Remove(cacheKey);
+        return Ok(entry.Profile);
     }
 
     private async Task<PortalLoginResponse?> BuildPortalProfileByEmailAsync(string rawEmail, CancellationToken cancellationToken)
@@ -277,34 +245,22 @@ public class AuthController : ControllerBase
             return false;
         }
 
-        try
+        using var client = new SmtpClient(host, port)
         {
-            using var client = new SmtpClient(host, port)
-            {
-                EnableSsl = true,
-                Credentials = new NetworkCredential(user, pass)
-            };
+            EnableSsl = true,
+            Credentials = new NetworkCredential(user, pass)
+        };
 
-            using var message = new MailMessage(from, recipientEmail)
-            {
-                Subject = "Codigo de acceso SGA-ITLA",
-                Body = BuildOtpHtmlBody(otp),
-                IsBodyHtml = true
-            };
+        using var message = new MailMessage(from, recipientEmail)
+        {
+            Subject = "Codigo de acceso SGA-ITLA",
+            Body = BuildOtpHtmlBody(otp),
+            IsBodyHtml = true
+        };
 
-            cancellationToken.ThrowIfCancellationRequested();
-            await client.SendMailAsync(message).ConfigureAwait(false);
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send OTP email to {Recipient}", recipientEmail);
-            return false;
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        await client.SendMailAsync(message).ConfigureAwait(false);
+        return true;
     }
 
     private static string BuildOtpHtmlBody(string otp)

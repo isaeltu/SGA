@@ -2,14 +2,75 @@
 @rendermode InteractiveServer
 @inject SGA.Web.Services.SgaApiClient ApiClient
 @inject IJSRuntime JS
+@inject SGA.Web.Services.UiFeedbackService Ui
 
 <section class="sga-section">
-    <h1>Centro de Reservas</h1>
-    <p class="lead">Dos formas de reservar: rapida y guiada con ticket.</p>
+    <div>
+        <h1>Centro de Reservas</h1>
+        <p class="lead">Dos formas de reservar: rapida y guiada con ticket.</p>
+    </div>
+
+    <div class="sga-metrics-grid">
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/navigation.svg" alt="Reserva" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Reserva activa</span>
+                <div class="sga-metric-value">@(reservationId > 0 ? reservationId : 0)</div>
+                <p class="sga-metric-copy">ID en contexto para consulta y abordaje.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-actions">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Gestionar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/lock.svg" alt="Estado" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Estado</span>
+                <div class="sga-metric-value">@CurrentStatus</div>
+                <p class="sga-metric-copy">Estado actual de la reserva consultada.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-detail">
+                    <img src="icons/nav/pencil.svg" alt="" />
+                    Revisar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/plus.svg" alt="Ticket" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Ticket QR</span>
+                <div class="sga-metric-value">@(ticket is null ? "No" : "Si")</div>
+                <p class="sga-metric-copy">Disponibilidad para descarga de ticket y QR.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-ticket">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Ver ticket
+                </a>
+            </div>
+        </article>
+    </div>
 
     <div class="sga-two-col">
         <article class="sga-card">
-            <h3>Reserva rapida</h3>
+            <div class="sga-card-header">
+                <div>
+                    <h3>Reserva rapida</h3>
+                    <p class="sga-panel-note">Flujo rapido con IDs directos para operaciones internas.</p>
+                </div>
+            </div>
             <div class="sga-form-grid compact">
                 <label>Trip ID</label>
                 <input @bind="quick.TripId" type="number" class="sga-input" />
@@ -28,7 +89,12 @@
         </article>
 
         <article class="sga-card">
-            <h3>Reserva guiada con ticket</h3>
+            <div class="sga-card-header">
+                <div>
+                    <h3>Reserva guiada con ticket</h3>
+                    <p class="sga-panel-note">Genera ticket y QR al confirmar la reserva.</p>
+                </div>
+            </div>
             <div class="sga-form-grid compact">
                 <label>Trip ID</label>
                 <input @bind="guided.TripId" type="number" class="sga-input" />
@@ -50,12 +116,21 @@
         </article>
     </div>
 
-    <div class="sga-inline-actions">
-        <input @bind="reservationId" type="number" class="sga-input" placeholder="Reservation ID" />
-        <input @bind="modifiedBy" class="sga-input" placeholder="Operador" />
-        <button class="sga-btn alt" @onclick="GetReservationAsync">Consultar</button>
-        <button class="sga-btn alt" @onclick="BoardReservationAsync">Marcar abordaje</button>
-    </div>
+    <article class="sga-card" id="section-actions">
+        <div class="sga-card-header">
+            <div>
+                <h3>Acciones de reserva</h3>
+                <p class="sga-panel-note">Consulta por ID o marca abordaje desde este bloque.</p>
+            </div>
+        </div>
+
+        <div class="sga-inline-actions">
+            <input @bind="reservationId" type="number" class="sga-input" placeholder="Reservation ID" />
+            <input @bind="modifiedBy" class="sga-input" placeholder="Operador" />
+            <button class="sga-btn alt" @onclick="GetReservationAsync">Consultar</button>
+            <button class="sga-btn alt" @onclick="BoardReservationAsync">Marcar abordaje</button>
+        </div>
+    </article>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
@@ -64,8 +139,14 @@
 
     @if (reservation is not null)
     {
-        <article class="sga-card">
-            <h3>Reserva @reservation.Id</h3>
+        <article class="sga-card" id="section-detail">
+            <div class="sga-card-header">
+                <div>
+                    <h3>Reserva @reservation.Id</h3>
+                    <p class="sga-panel-note">Detalle completo de la reserva en contexto.</p>
+                </div>
+                <span class="sga-status-pill">@reservation.Status</span>
+            </div>
             <p>Viaje: @reservation.TripId</p>
             <p>Persona: @reservation.PersonId</p>
             <p>Autorizacion: @reservation.AuthorizationId</p>
@@ -77,7 +158,7 @@
 
     @if (ticket is not null)
     {
-        <article class="sga-ticket">
+        <article class="sga-ticket" id="section-ticket">
             <p class="title">Ticket de abordaje</p>
             <p>Reserva: @ticket.ReservationId</p>
             <p>Viaje: @ticket.TripId</p>
@@ -110,10 +191,14 @@
     private BoardingTicket? ticket;
     private string? ticketQrBase64;
 
+    private string CurrentStatus => reservation?.Status ?? "-";
+
     private async Task CreateQuickReservationAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         ticket = null;
+        ticketQrBase64 = null;
 
         try
         {
@@ -122,18 +207,22 @@
                 CancellationToken.None);
 
             message = $"Reserva creada con ID {reservationId}.";
+            Ui.ShowSuccess("Reserva creada", message);
             await GetReservationAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo crear la reserva", ex.Message);
         }
     }
 
     private async Task CreateGuidedReservationAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         ticket = null;
+        ticketQrBase64 = null;
 
         try
         {
@@ -158,15 +247,18 @@
             }
 
             message = $"Reserva guiada creada con ID {reservationId}. Ticket generado.";
+            Ui.ShowSuccess("Ticket generado", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo generar el ticket", ex.Message);
         }
     }
 
     private async Task GetReservationAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (reservationId <= 0)
         {
@@ -180,16 +272,23 @@
             if (reservation is null)
             {
                 message = "No se encontro la reserva.";
+                Ui.ShowWarning("Reserva no encontrada", message);
+            }
+            else
+            {
+                Ui.ShowInfo("Reserva cargada", $"Reserva {reservation.Id} disponible para consulta.");
             }
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo consultar la reserva", ex.Message);
         }
     }
 
     private async Task BoardReservationAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (reservationId <= 0)
         {
@@ -201,11 +300,13 @@
         {
             await ApiClient.BoardReservationAsync(new SGA.Web.Models.BoardReservationRequest(reservationId, modifiedBy), CancellationToken.None);
             message = "Reserva marcada como abordada.";
+            Ui.ShowSuccess("Abordaje confirmado", message);
             await GetReservationAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo marcar el abordaje", ex.Message);
         }
     }
 
@@ -237,6 +338,7 @@
 $"Ticket SGA-ITLA\nReserva: {ticket.ReservationId}\nViaje: {ticket.TripId}\nPasajero: {ticket.PersonId}\nAsiento: {ticket.SeatCode}\nCola: {ticket.QueueNumber}\nQR: {ticket.QrValue}\nGenerado UTC: {ticket.GeneratedAt:O}";
 
         await JS.InvokeVoidAsync("sgaUi.downloadTextFile", $"ticket-{ticket.ReservationId}.txt", content);
+        Ui.ShowSuccess("Ticket descargado", "El ticket se descargo correctamente.");
     }
 
     private async Task DownloadQrAsync()
@@ -247,6 +349,7 @@ $"Ticket SGA-ITLA\nReserva: {ticket.ReservationId}\nViaje: {ticket.TripId}\nPasa
         }
 
         await JS.InvokeVoidAsync("sgaUi.downloadBase64File", $"ticket-qr-{ticket.ReservationId}.png", "image/png", ticketQrBase64);
+        Ui.ShowSuccess("QR descargado", "La imagen QR se descargo correctamente.");
     }
 
     private static string GenerateQrBase64(string qrValue)

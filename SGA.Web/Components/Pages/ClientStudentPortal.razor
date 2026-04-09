@@ -2,37 +2,131 @@
 @rendermode InteractiveServer
 @inject SGA.Web.Services.SgaApiClient ApiClient
 @inject IJSRuntime JS
+@inject SGA.Web.Services.UiFeedbackService Ui
 
 <section class="sga-section">
-    <h1>Portal Cliente y Estudiante</h1>
-    <p class="lead">Reserva sin iniciar sesion: selecciona institucion y viaje. Tus datos son opcionales.</p>
-
-    <div class="sga-form-grid">
-        <label>Institucion</label>
-        <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadAvailableTripsAsync">
-            <option value="0">Selecciona una institucion</option>
-            @foreach (var institution in institutions)
-            {
-                <option value="@institution.Id">@institution.Name (@institution.Code)</option>
-            }
-        </select>
+    <div>
+        <h1>Portal Cliente y Estudiante</h1>
+        <p class="lead">Reserva sin iniciar sesion: selecciona institucion y viaje. Tus datos son opcionales.</p>
     </div>
 
-    <div class="sga-grid-cards">
-        @foreach (var trip in availableTrips)
+    <div class="sga-metrics-grid">
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/building.svg" alt="Instituciones" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Instituciones</span>
+                <div class="sga-metric-value">@institutions.Count</div>
+                <p class="sga-metric-copy">Instituciones con viajes disponibles para reservar.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-context">
+                    <img src="icons/nav/pencil.svg" alt="" />
+                    Elegir
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/navigation.svg" alt="Viajes" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Viajes</span>
+                <div class="sga-metric-value">@availableTrips.Count</div>
+                <p class="sga-metric-copy">Opciones activas para la institucion seleccionada.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-trips">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Ver viajes
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/user.svg" alt="Seleccion" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Trip seleccionado</span>
+                <div class="sga-metric-value">@(selectedTripId > 0 ? selectedTripId : 0)</div>
+                <p class="sga-metric-copy">Trip objetivo para generar reserva y ticket QR.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-booking">
+                    <img src="icons/nav/plus.svg" alt="" />
+                    Reservar
+                </a>
+            </div>
+        </article>
+    </div>
+
+    <article class="sga-card" id="section-context">
+        <div class="sga-card-header">
+            <div>
+                <h3>Contexto de reserva</h3>
+                <p class="sga-panel-note">Selecciona una institucion para cargar los viajes disponibles.</p>
+            </div>
+        </div>
+
+        <div class="sga-form-grid compact">
+            <label>Institucion</label>
+            <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadAvailableTripsAsync">
+                <option value="0">Selecciona una institucion</option>
+                @foreach (var institution in institutions)
+                {
+                    <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+                }
+            </select>
+        </div>
+    </article>
+
+    <article class="sga-card" id="section-trips">
+        <div class="sga-card-header">
+            <div>
+                <h3>Viajes disponibles</h3>
+                <p class="sga-panel-note">Haz click en una tarjeta para seleccionar el viaje.</p>
+            </div>
+        </div>
+
+        @if (availableTrips.Count > 0)
         {
-            <article class="sga-card @(selectedTripId == trip.Id ? "selected-card" : string.Empty)" @onclick="() => SelectTrip(trip.Id)">
-                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
-                <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Bus: @trip.BusId</p>
-                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
-                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
-                <p>Estado: @trip.Status | Disponibles: @trip.AvailableSeats</p>
-            </article>
-        }
-    </div>
+            <div class="sga-grid-cards">
+                @foreach (var trip in availableTrips)
+                {
+                    <article class="sga-card sga-trip-card @(selectedTripId == trip.Id ? "selected-card" : string.Empty)" @onclick="() => SelectTrip(trip.Id)">
+                        <div class="sga-card-header">
+                            <div>
+                                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
+                                <p class="sga-panel-note">Viaje #@trip.Id | Bus @trip.BusId</p>
+                            </div>
+                            <span class="sga-status-pill">@trip.Status</span>
+                        </div>
 
-    <article class="sga-card">
-        <h3>Datos para reserva</h3>
+                        <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName)</p>
+                        <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                        <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                        <p>Disponibles: @trip.AvailableSeats</p>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sga-empty">No hay viajes disponibles para la institucion seleccionada.</div>
+        }
+    </article>
+
+    <article class="sga-card" id="section-booking">
+        <div class="sga-card-header">
+            <div>
+                <h3>Datos para reserva</h3>
+                <p class="sga-panel-note">Puedes reservar como invitado. Los campos personales son opcionales.</p>
+            </div>
+        </div>
+
         <div class="sga-form-grid compact">
             <label>Nombre (opcional)</label>
             <input @bind="guest.FirstName" class="sga-input" />
@@ -83,6 +177,7 @@
     private List<SGA.Web.Models.InstitutionResponse> institutions = new();
     private List<SGA.Web.Models.TripResponse> availableTrips = new();
     private int selectedInstitutionId;
+    private int lastLoadedInstitutionId;
     private int selectedTripId;
     private string? message;
     private SGA.Web.Models.ReservationResponse? reservation;
@@ -92,36 +187,71 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
-        institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+        using var busy = Ui.BeginBusy();
+        try
+        {
+            var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+            institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            Ui.ShowError("No se pudieron cargar instituciones", ex.Message);
+        }
     }
 
     private async Task LoadAvailableTripsAsync()
     {
-        reservation = null;
-        selectedTripId = 0;
+        using var busy = Ui.BeginBusy();
+
+        var institutionChanged = selectedInstitutionId != lastLoadedInstitutionId;
+        if (institutionChanged)
+        {
+            reservation = null;
+            ticketQrBase64 = null;
+            selectedTripId = 0;
+            lastLoadedInstitutionId = selectedInstitutionId;
+        }
 
         if (selectedInstitutionId <= 0)
         {
             availableTrips.Clear();
+            reservation = null;
+            ticketQrBase64 = null;
             return;
         }
 
-        var response = await ApiClient.GetTripsAsync(selectedInstitutionId, true, CancellationToken.None);
-        availableTrips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
-        message = availableTrips.Count == 0
-            ? "No hay viajes disponibles para esta institucion en este momento."
-            : null;
+        try
+        {
+            var response = await ApiClient.GetTripsAsync(selectedInstitutionId, true, CancellationToken.None);
+            availableTrips = response?.ToList() ?? new List<SGA.Web.Models.TripResponse>();
+            message = availableTrips.Count == 0
+                ? "No hay viajes disponibles para esta institucion en este momento."
+                : null;
+
+            if (availableTrips.Count == 0)
+            {
+                Ui.ShowInfo("Sin viajes", message ?? "No hay viajes disponibles.");
+            }
+        }
+        catch (Exception ex)
+        {
+            availableTrips.Clear();
+            message = ex.Message;
+            Ui.ShowError("No se pudieron cargar viajes", ex.Message);
+        }
     }
 
     private void SelectTrip(int tripId)
     {
         selectedTripId = tripId;
         message = null;
+        Ui.ShowInfo("Viaje seleccionado", $"Trip {tripId} listo para reservar.");
     }
 
     private async Task CreateGuestReservationAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         reservation = null;
 
@@ -160,11 +290,14 @@
                 ? $"Reserva creada con ID {reservationId}."
                 : "Reserva creada exitosamente.";
 
+            Ui.ShowSuccess("Reserva creada", message);
+
             await LoadAvailableTripsAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo crear la reserva", ex.Message);
         }
     }
 
@@ -187,6 +320,7 @@
 $"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstado: {reservation.Status}\nTurno: {reservation.QueueNumber}\nQR: {reservation.QrCode}\nGenerado UTC: {reservation.CreatedAt:O}";
 
         await JS.InvokeVoidAsync("sgaUi.downloadTextFile", $"reserva-{reservation.Id}.txt", content);
+    Ui.ShowSuccess("Ticket descargado", "El archivo de ticket se descargo correctamente.");
     }
 
     private async Task DownloadReservationQrAsync()
@@ -197,6 +331,7 @@ $"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstad
         }
 
         await JS.InvokeVoidAsync("sgaUi.downloadBase64File", $"reserva-qr-{reservation.Id}.png", "image/png", ticketQrBase64);
+        Ui.ShowSuccess("QR descargado", "La imagen QR se descargo correctamente.");
     }
 
     private static string GenerateQrBase64(string qrValue)
