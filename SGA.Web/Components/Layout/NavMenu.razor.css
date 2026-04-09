@@ -20,7 +20,7 @@
 
 .sga-nav-link {
     text-decoration: none;
-    color: rgba(255, 255, 255, 0.92);
+    color: #ffffff;
     border-radius: 8px;
     padding: 0.6rem 0.7rem;
     display: flex;
@@ -28,6 +28,17 @@
     gap: 0.55rem;
     font-size: 0.9rem;
     transition: background-color .18s ease, transform .18s ease;
+}
+
+.sga-nav-link:link,
+.sga-nav-link:visited,
+.sga-nav-link:active {
+    color: #ffffff;
+}
+
+.sga-nav-link span {
+    color: #ffffff;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .sga-nav-link img {
@@ -41,8 +52,16 @@
     transform: translateX(2px);
 }
 
+.sga-nav-link:hover span {
+    color: #ffffff;
+}
+
 .sga-nav-link.active {
     background: rgba(255, 255, 255, 0.3);
     color: #fff;
     font-weight: 600;
+}
+
+.sga-nav-link.active span {
+    color: #ffffff;
 }
