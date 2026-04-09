@@ -2,7 +2,6 @@ using MediatR;
 using SGA.Application.Commands;
 using SGA.Domain.Entities.Transportation;
 using SGA.Domain.Repositories;
-using SGA.Domain.ValueObjects.Transportation;
 
 namespace SGA.Application.Handlers
 {

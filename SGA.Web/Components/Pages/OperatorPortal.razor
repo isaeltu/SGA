@@ -268,21 +268,6 @@
         <p class="sga-alert">@message</p>
     }
 
- HEAD
-    <div class="sga-grid-cards">
-        @foreach (var trip in trips)
-        {
-            <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
-                <h3>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName)</h3>
-                <p> Driver: @trip.DriverId | Bus: @trip.BusId</p>
-                <p>Estado: @trip.Status</p>
-                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
-                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
-                <p>Disponibles: @trip.AvailableSeats</p>
-            </article>
-        }
-    </div>
-=======
     @if (trips.Count > 0)
     {
         <div class="sga-grid-cards">
@@ -303,7 +288,6 @@
     {
         <div class="sga-empty">Aun no hay viajes cargados para esta institucion.</div>
     }
->>>>>>> 4c1839fa42a860a946a077e1c261153b5f74b0c4
 </section>
 
 @code {
