@@ -163,6 +163,12 @@
             <p class="title">Reserva confirmada</p>
             <p>Reserva: @reservation.Id</p>
             <p>Viaje: @reservation.TripId</p>
+            @if (reservationTrip is not null)
+            {
+                <p>Ruta: @GetRouteLabel(reservationTrip)</p>
+                <p>Salida: @FormatLocalDateTime(reservationTrip.ScheduledDepartureTime)</p>
+                <p>Llegada: @FormatLocalDateTime(reservationTrip.ScheduledArrivalTime)</p>
+            }
             <p>QR: @reservation.QrCode</p>
             <p>Estado: @reservation.Status</p>
             <p>Turno: @reservation.QueueNumber</p>
@@ -189,6 +195,7 @@
     private int selectedTripId;
     private string? message;
     private SGA.Web.Models.ReservationResponse? reservation;
+    private SGA.Web.Models.TripResponse? reservationTrip;
     private string? ticketQrBase64;
 
     private readonly GuestReservationForm guest = new();
@@ -216,6 +223,7 @@
         if (institutionChanged)
         {
             reservation = null;
+            reservationTrip = null;
             ticketQrBase64 = null;
             selectedTripId = 0;
             lastLoadedInstitutionId = selectedInstitutionId;
@@ -225,6 +233,7 @@
         {
             availableTrips.Clear();
             reservation = null;
+            reservationTrip = null;
             ticketQrBase64 = null;
             return;
         }
@@ -262,6 +271,7 @@
         using var busy = Ui.BeginBusy();
         message = null;
         reservation = null;
+        reservationTrip = null;
 
         if (selectedInstitutionId <= 0)
         {
@@ -293,6 +303,7 @@
             reservation = await ApiClient.GetReservationByIdAsync(reservationId, CancellationToken.None);
             if (reservation is not null)
             {
+                reservationTrip = await ApiClient.GetTripByIdAsync(reservation.TripId, CancellationToken.None);
                 ticketQrBase64 = GenerateQrBase64(reservation.QrCode);
             }
 
@@ -326,10 +337,11 @@
             return;
         }
 
-        var content =
-$"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstado: {reservation.Status}\nTurno: {reservation.QueueNumber}\nQR: {reservation.QrCode}\nGenerado UTC: {reservation.CreatedAt:O}";
+        reservationTrip ??= await ApiClient.GetTripByIdAsync(reservation.TripId, CancellationToken.None);
+        ticketQrBase64 ??= GenerateQrBase64(reservation.QrCode);
 
-        await JS.InvokeVoidAsync("sgaUi.downloadTextFile", $"reserva-{reservation.Id}.txt", content);
+        var content = BuildReservationTicketHtml(reservation, reservationTrip, ticketQrBase64);
+        await JS.InvokeVoidAsync("sgaUi.downloadHtmlFile", $"reserva-{reservation.Id}.html", content);
         Ui.ShowSuccess("Ticket descargado", "El archivo de ticket se descargo correctamente.");
     }
 
@@ -357,4 +369,49 @@ $"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstad
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
+
+    private static string BuildReservationTicketHtml(
+        SGA.Web.Models.ReservationResponse reservation,
+        SGA.Web.Models.TripResponse? trip,
+        string? qrBase64)
+    {
+        var routeLabel = trip is null ? $"Ruta ID {reservation.TripId}" : GetRouteLabel(trip);
+        var departure = trip is null ? "N/D" : FormatLocalDateTime(trip.ScheduledDepartureTime);
+        var arrival = trip is null ? "N/D" : FormatLocalDateTime(trip.ScheduledArrivalTime);
+        var qrImage = string.IsNullOrWhiteSpace(qrBase64)
+            ? string.Empty
+            : $"<img alt='QR de reserva' style='width:180px;height:180px;border:1px solid #d1d5db;border-radius:8px;padding:8px;background:#fff;' src='data:image/png;base64,{qrBase64}' />";
+
+                return $@"<!doctype html>
+<html lang='es'>
+<head>
+    <meta charset='utf-8' />
+    <title>Ticket Reserva {reservation.Id}</title>
+</head>
+<body style='font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;padding:24px;color:#1f2937;'>
+    <section style='max-width:620px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:22px;'>
+        <h2 style='margin:0 0 12px;color:#005f73;'>Ticket SGA-ITLA</h2>
+        <p style='margin:4px 0;'><strong>Reserva:</strong> {reservation.Id}</p>
+        <p style='margin:4px 0;'><strong>Viaje:</strong> {reservation.TripId}</p>
+        <p style='margin:4px 0;'><strong>Ruta:</strong> {EscapeHtml(routeLabel)}</p>
+        <p style='margin:4px 0;'><strong>Salida:</strong> {departure}</p>
+        <p style='margin:4px 0;'><strong>Llegada:</strong> {arrival}</p>
+        <p style='margin:4px 0;'><strong>Estado:</strong> {EscapeHtml(reservation.Status)}</p>
+        <p style='margin:4px 0;'><strong>Turno:</strong> {reservation.QueueNumber}</p>
+        <p style='margin:4px 0;'><strong>Codigo QR:</strong> {EscapeHtml(reservation.QrCode)}</p>
+        <p style='margin:4px 0;'><strong>Generado:</strong> {FormatLocalDateTime(reservation.CreatedAt)}</p>
+        <div style='margin-top:14px;'>{qrImage}</div>
+    </section>
+</body>
+</html>";
+    }
+
+    private static string GetRouteLabel(SGA.Web.Models.TripResponse trip)
+        => string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName;
+
+    private static string FormatLocalDateTime(DateTime value)
+        => value.ToLocalTime().ToString("dd/MM/yyyy hh:mm tt");
+
+    private static string EscapeHtml(string value)
+        => System.Net.WebUtility.HtmlEncode(value);
 }
