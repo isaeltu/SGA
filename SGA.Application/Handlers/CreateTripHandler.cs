@@ -27,6 +27,11 @@ namespace SGA.Application.Handlers
 
         public async Task<int> Handle(CreateTripCommand request, CancellationToken cancellationToken)
         {
+            if (request.ScheduledDepartureTime.ToUniversalTime() <= DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Trips cannot be created for past departure dates.");
+            }
+
             var route = await _routeRepository.GetByIdAsync(request.RouteId, cancellationToken).ConfigureAwait(false);
             if (route is null)
             {

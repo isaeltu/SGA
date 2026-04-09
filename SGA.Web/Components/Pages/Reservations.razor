@@ -409,9 +409,24 @@
 
         ticketTrip ??= await ApiClient.GetTripByIdAsync(ticket.TripId, CancellationToken.None);
 
-        var content = BuildBoardingTicketHtml(ticket, ticketTrip, ticketQrBase64);
-        await JS.InvokeVoidAsync("sgaUi.downloadHtmlFile", $"ticket-{ticket.ReservationId}.html", content);
-        Ui.ShowSuccess("Ticket descargado", "El ticket se descargo correctamente.");
+        var routeLabel = ticketTrip is null ? $"Viaje #{ticket.TripId}" : GetRouteLabel(ticketTrip);
+        var departureDate = ticketTrip is null ? "N/D" : FormatLocalDateDate(ticketTrip.ScheduledDepartureTime);
+        var departureTime = ticketTrip is null ? "N/D" : FormatLocalTime(ticketTrip.ScheduledDepartureTime);
+        var busLabel = ticketTrip is null ? "Opcional" : $"Bus #{ticketTrip.BusId}";
+
+        await JS.InvokeVoidAsync("sgaUi.downloadTicketPng", $"ticket-{ticket.ReservationId}.png", new
+        {
+            reservationId = ticket.ReservationId,
+            route = routeLabel,
+            departureDate,
+            departureTime,
+            bus = busLabel,
+            queue = ticket.QueueNumber.ToString(),
+            reservationCode = ticket.QrValue,
+            qrBase64 = ticketQrBase64
+        });
+
+        Ui.ShowSuccess("Ticket descargado", "La imagen del ticket se descargo correctamente.");
     }
 
     private async Task DownloadQrAsync()

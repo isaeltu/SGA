@@ -386,9 +386,24 @@
         reservationTrip ??= await ApiClient.GetTripByIdAsync(reservation.TripId, CancellationToken.None);
         ticketQrBase64 ??= GenerateQrBase64(reservation.QrCode);
 
-        var content = BuildReservationTicketHtml(reservation, reservationTrip, ticketQrBase64);
-        await JS.InvokeVoidAsync("sgaUi.downloadHtmlFile", $"reserva-{reservation.Id}.html", content);
-        Ui.ShowSuccess("Ticket descargado", "El archivo de ticket se descargo correctamente.");
+        var routeLabel = reservationTrip is null ? $"Viaje #{reservation.TripId}" : GetRouteLabel(reservationTrip);
+        var departureDate = reservationTrip is null ? "N/D" : FormatLocalDateDate(reservationTrip.ScheduledDepartureTime);
+        var departureTime = reservationTrip is null ? "N/D" : FormatLocalTime(reservationTrip.ScheduledDepartureTime);
+        var busLabel = reservationTrip is null ? "Opcional" : $"Bus #{reservationTrip.BusId}";
+
+        await JS.InvokeVoidAsync("sgaUi.downloadTicketPng", $"reserva-{reservation.Id}.png", new
+        {
+            reservationId = reservation.Id,
+            route = routeLabel,
+            departureDate,
+            departureTime,
+            bus = busLabel,
+            queue = reservation.QueueNumber.ToString(),
+            reservationCode = reservation.QrCode,
+            qrBase64 = ticketQrBase64
+        });
+
+        Ui.ShowSuccess("Ticket descargado", "La imagen del ticket se descargo correctamente.");
     }
 
     private async Task DownloadReservationQrAsync()

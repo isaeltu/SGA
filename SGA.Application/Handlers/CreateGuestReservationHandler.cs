@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using MediatR;
 using SGA.Application.Commands;
+using SGA.Application.Rules;
 using SGA.Domain.Entities.Authorizations;
 using SGA.Domain.Entities.Users;
 using SGA.Domain.Enums.Trips;
@@ -41,6 +42,21 @@ namespace SGA.Application.Handlers
             if (trip is null)
             {
                 throw new KeyNotFoundException($"Trip with id {request.TripId} was not found.");
+            }
+
+            var utcNow = DateTime.UtcNow;
+            if (TripBookingRules.MustAutoCancel(trip, utcNow))
+            {
+                var cancelResult = trip.Cancel("system-auto-cancel");
+                if (cancelResult.IsSuccess)
+                {
+                    await _tripRepository.UpdateAsync(trip, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (TripBookingRules.HasDeparturePassed(trip, utcNow))
+            {
+                throw new InvalidOperationException("Reservations are not allowed after the trip departure time.");
             }
 
             if (trip.InstitutionId != request.InstitutionId)

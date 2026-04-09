@@ -13,6 +13,9 @@ namespace SGA.Application.Validations
             RuleFor(x => x.ScheduledDepartureTime)
                 .LessThan(x => x.ScheduledArrivalTime)
                 .WithMessage("ScheduledDepartureTime must be before ScheduledArrivalTime.");
+            RuleFor(x => x.ScheduledDepartureTime)
+                .Must(value => value.ToUniversalTime() > DateTime.UtcNow)
+                .WithMessage("Trips can only be created for future departure times.");
             RuleFor(x => x.AvailableSeats)
                 .GreaterThan(0)
                 .When(x => x.AvailableSeats.HasValue);

@@ -1,6 +1,7 @@
 using MediatR;
 using SGA.Application.DTOs.Transportation;
 using SGA.Application.Queries;
+using SGA.Application.Rules;
 using SGA.Domain.Enums.Trips;
 using SGA.Domain.Repositories;
 
@@ -20,6 +21,17 @@ namespace SGA.Application.Handlers
         public async Task<IReadOnlyCollection<TripDto>> Handle(GetTripsQuery request, CancellationToken cancellationToken)
         {
             var trips = await _tripRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
+            var utcNow = DateTime.UtcNow;
+
+            foreach (var staleTrip in trips.Where(t => TripBookingRules.MustAutoCancel(t, utcNow)))
+            {
+                var cancelResult = staleTrip.Cancel("system-auto-cancel");
+                if (cancelResult.IsSuccess)
+                {
+                    await _tripRepository.UpdateAsync(staleTrip, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             var routes = await _routeRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
             var routeNamesById = routes
                 .Where(r => !r.IsDeleted)
@@ -37,7 +49,8 @@ namespace SGA.Application.Handlers
             {
                 query = query.Where(t =>
                     (t.Status == TripStatus.Scheduled || t.Status == TripStatus.InProgress)
-                    && t.AvailableSeats > 0);
+                    && t.AvailableSeats > 0
+                    && !TripBookingRules.HasDeparturePassed(t, utcNow));
             }
 
             return query
