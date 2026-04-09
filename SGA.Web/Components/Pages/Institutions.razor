@@ -6,15 +6,21 @@
     <h1>Registro de Instituciones</h1>
     <p class="lead">Base de multi-tenant para estudiantes, empleados y operadores.</p>
 
-    <div class="sga-form-grid">
-        <label>Codigo de institucion</label>
-        <input @bind="createModel.Code" class="sga-input" />
+    <div class="sga-form-full single-col">
+        <div class="sga-field">
+            <label>Codigo de institucion</label>
+            <input @bind="createModel.Code" class="sga-input" />
+        </div>
 
-        <label>Nombre</label>
-        <input @bind="createModel.Name" class="sga-input" />
+        <div class="sga-field">
+            <label>Nombre</label>
+            <input @bind="createModel.Name" class="sga-input" />
+        </div>
 
-        <label>Creado por</label>
-        <input @bind="createModel.CreatedBy" class="sga-input" />
+        <div class="sga-field">
+            <label>Creado por</label>
+            <input @bind="createModel.CreatedBy" class="sga-input" />
+        </div>
 
         <button type="button" class="sga-btn" @onclick="CreateInstitutionAsync">Crear institucion</button>
     </div>

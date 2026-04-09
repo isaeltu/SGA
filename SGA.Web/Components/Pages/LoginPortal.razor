@@ -9,21 +9,27 @@
     <h1>Validar acceso por rol</h1>
     <p class="lead">Ingresa tu correo y valida el OTP de 6 digitos enviado al email.</p>
 
-    <div class="sga-form-grid">
-        <label>Portal</label>
-        <select class="sga-input" @bind="portal">
-            <option value="admin">Administrador</option>
-            <option value="operador">Operador</option>
-            <option value="driver">Driver</option>
-        </select>
+    <div class="sga-form-full single-col">
+        <div class="sga-field">
+            <label>Portal</label>
+            <select class="sga-input" @bind="portal">
+                <option value="admin">Administrador</option>
+                <option value="operador">Operador</option>
+                <option value="driver">Driver</option>
+            </select>
+        </div>
 
-        <label>Correo del usuario</label>
-        <input class="sga-input" @bind="email" type="email" placeholder="usuario@correo.com" />
+        <div class="sga-field">
+            <label>Correo del usuario</label>
+            <input class="sga-input" @bind="email" type="email" placeholder="usuario@correo.com" />
+        </div>
 
         @if (showOtpStep)
         {
-            <label>Codigo OTP (6 digitos)</label>
-            <input class="sga-input" @bind="otpCode" maxlength="6" placeholder="123456" />
+            <div class="sga-field">
+                <label>Codigo OTP (6 digitos)</label>
+                <input class="sga-input" @bind="otpCode" maxlength="6" placeholder="123456" />
+            </div>
             <button class="sga-btn alt" @onclick="VerifyOtpAsync">Validar codigo</button>
         }
         else

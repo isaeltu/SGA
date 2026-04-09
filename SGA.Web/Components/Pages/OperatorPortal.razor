@@ -95,22 +95,24 @@
             </div>
         </div>
 
-        <div class="sga-form-grid compact">
-            <label>Institucion de trabajo</label>
-            @if (Session.InstitutionId > 0)
-            {
-                <input class="sga-input" value="@institutionLabel" readonly />
-            }
-            else
-            {
-                <select class="sga-input" @bind="selectedInstitutionId" @bind:after="OnInstitutionChangedAsync">
-                    <option value="0">Selecciona una institucion</option>
-                    @foreach (var institution in institutions)
-                    {
-                        <option value="@institution.Id">@institution.Name (@institution.Code)</option>
-                    }
-                </select>
-            }
+        <div class="sga-form-full single-col">
+            <div class="sga-field">
+                <label>Institucion de trabajo</label>
+                @if (Session.InstitutionId > 0)
+                {
+                    <input class="sga-input" value="@institutionLabel" readonly />
+                }
+                else
+                {
+                    <select class="sga-input" @bind="selectedInstitutionId" @bind:after="OnInstitutionChangedAsync">
+                        <option value="0">Selecciona una institucion</option>
+                        @foreach (var institution in institutions)
+                        {
+                            <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+                        }
+                    </select>
+                }
+            </div>
         </div>
     </article>
 
@@ -128,21 +130,29 @@
                 </div>
             </div>
 
-            <div class="sga-form-grid compact">
-            <label>Placa</label>
-            <input @bind="busModel.LicensePlate" class="sga-input" />
+            <div class="sga-form-full">
+                <div class="sga-field">
+                    <label>Placa</label>
+                    <input @bind="busModel.LicensePlate" class="sga-input" />
+                </div>
 
-            <label>Modelo</label>
-            <input @bind="busModel.Model" class="sga-input" />
+                <div class="sga-field">
+                    <label>Modelo</label>
+                    <input @bind="busModel.Model" class="sga-input" />
+                </div>
 
-            <label>Anio</label>
-            <input @bind="busModel.Year" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Anio</label>
+                    <input @bind="busModel.Year" type="number" class="sga-input" />
+                </div>
 
-            <label>Capacidad</label>
-            <input @bind="busModel.Capacity" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Capacidad</label>
+                    <input @bind="busModel.Capacity" type="number" class="sga-input" />
+                </div>
 
-            <button class="sga-btn alt" @onclick="CreateBusAsync">Registrar autobus</button>
-        </div>
+                <button class="sga-btn alt" style="grid-column: 1 / -1;" @onclick="CreateBusAsync">Registrar autobus</button>
+            </div>
 
             @if (buses.Count > 0)
             {
@@ -200,57 +210,81 @@
                 </div>
             </div>
 
-            <div class="sga-form-grid compact">
-            <label>Nombre de ruta</label>
-            <input @bind="routeModel.Name" class="sga-input" />
+            <div class="sga-form-full">
+                <div class="sga-field">
+                    <label>Nombre de ruta</label>
+                    <input @bind="routeModel.Name" class="sga-input" />
+                </div>
 
-            <label>Origen</label>
-            <input @bind="routeModel.Origin" class="sga-input" />
+                <div class="sga-field">
+                    <label>Origen</label>
+                    <input @bind="routeModel.Origin" class="sga-input" />
+                </div>
 
-            <label>Destino</label>
-            <input @bind="routeModel.Destination" class="sga-input" />
+                <div class="sga-field">
+                    <label>Destino</label>
+                    <input @bind="routeModel.Destination" class="sga-input" />
+                </div>
 
-            <label>Distancia (km)</label>
-            <input @bind="routeModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+                <div class="sga-field">
+                    <label>Distancia (km)</label>
+                    <input @bind="routeModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+                </div>
 
-            <label>Duracion estimada (min)</label>
-            <input @bind="routeModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+                <div class="sga-field">
+                    <label>Duracion estimada (min)</label>
+                    <input @bind="routeModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+                </div>
 
-            <button class="sga-btn alt" @onclick="CreateRouteAsync">Registrar ruta</button>
-        </div>
+                <button class="sga-btn alt" style="grid-column: 1 / -1;" @onclick="CreateRouteAsync">Registrar ruta</button>
+            </div>
 
-            <div class="sga-form-grid compact" style="margin-top:1rem;">
-                <label>Ruta seleccionada para editar</label>
-                <select class="sga-input" @bind="selectedRouteId" @bind:after="LoadSelectedRouteForEditAsync">
-                    <option value="0">Selecciona una ruta</option>
-                    @foreach (var route in routes)
-                    {
-                        <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
-                    }
-                </select>
+            <div class="sga-form-full" style="margin-top:1rem;">
+                <div class="sga-field" style="grid-column: 1 / -1;">
+                    <label>Ruta seleccionada para editar</label>
+                    <select class="sga-input" @bind="selectedRouteId" @bind:after="LoadSelectedRouteForEditAsync">
+                        <option value="0">Selecciona una ruta</option>
+                        @foreach (var route in routes)
+                        {
+                            <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
+                        }
+                    </select>
+                </div>
 
                 @if (selectedRouteId > 0)
                 {
-                    <label>Nombre (edicion)</label>
-                    <input @bind="routeEditModel.Name" class="sga-input" />
+                    <div class="sga-field">
+                        <label>Nombre (edicion)</label>
+                        <input @bind="routeEditModel.Name" class="sga-input" />
+                    </div>
 
-                    <label>Origen (edicion)</label>
-                    <input @bind="routeEditModel.Origin" class="sga-input" />
+                    <div class="sga-field">
+                        <label>Origen (edicion)</label>
+                        <input @bind="routeEditModel.Origin" class="sga-input" />
+                    </div>
 
-                    <label>Destino (edicion)</label>
-                    <input @bind="routeEditModel.Destination" class="sga-input" />
+                    <div class="sga-field">
+                        <label>Destino (edicion)</label>
+                        <input @bind="routeEditModel.Destination" class="sga-input" />
+                    </div>
 
-                    <label>Distancia (km)</label>
-                    <input @bind="routeEditModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+                    <div class="sga-field">
+                        <label>Distancia (km)</label>
+                        <input @bind="routeEditModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+                    </div>
 
-                    <label>Duracion estimada (min)</label>
-                    <input @bind="routeEditModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+                    <div class="sga-field">
+                        <label>Duracion estimada (min)</label>
+                        <input @bind="routeEditModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+                    </div>
 
-                    <label>Activa</label>
-                    <input @bind="routeEditModel.IsActive" type="checkbox" class="sga-input" />
+                    <div class="sga-field">
+                        <label>Activa</label>
+                        <input @bind="routeEditModel.IsActive" type="checkbox" class="sga-input" />
+                    </div>
 
-                    <button class="sga-btn alt" @onclick="UpdateRouteAsync">Actualizar ruta</button>
-                    <button class="sga-btn danger" @onclick="DeleteSelectedRouteAsync">Eliminar ruta</button>
+                    <button class="sga-btn alt" style="grid-column: 1 / -1;" @onclick="UpdateRouteAsync">Actualizar ruta</button>
+                    <button class="sga-btn danger" style="grid-column: 1 / -1;" @onclick="DeleteSelectedRouteAsync">Eliminar ruta</button>
                 }
             </div>
 
@@ -316,86 +350,107 @@
             </div>
         </div>
 
-        <div class="sga-form-grid compact">
-            <label>Ruta</label>
-            <select class="sga-input" @bind="createModel.RouteId">
-                <option value="0">Selecciona una ruta</option>
-                @foreach (var route in routes)
-                {
-                    <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
-                }
-            </select>
-
-            <label>Driver ID</label>
-            <input @bind="createModel.DriverId" type="number" class="sga-input" />
-
-            <label>Drivers disponibles</label>
-            <div class="sga-inline-actions operator-actions">
-                <select class="sga-input" @bind="selectedDriverId">
-                    <option value="0">Selecciona un driver</option>
-                    @foreach (var driver in drivers)
+        <div class="sga-form-full">
+            <div class="sga-field">
+                <label>Ruta</label>
+                <select class="sga-input" @bind="createModel.RouteId">
+                    <option value="0">Selecciona una ruta</option>
+                    @foreach (var route in routes)
                     {
-                        <option value="@driver.DriverId">@driver.FullName - @driver.DriverLicense</option>
+                        <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
                     }
                 </select>
-                <button class="sga-btn alt" @onclick="LoadDriversAsync">Cargar drivers</button>
-                <button class="sga-btn alt" @onclick="ApplySelectedDriver">Autocompletar Driver ID</button>
+            </div>
+
+            <div class="sga-field">
+                <label>Driver ID</label>
+                <input @bind="createModel.DriverId" type="number" class="sga-input" />
+            </div>
+
+            <div class="sga-field" style="grid-column: 1 / -1;">
+                <label>Drivers disponibles</label>
+                <div class="sga-inline-actions operator-actions">
+                    <select class="sga-input" @bind="selectedDriverId">
+                        <option value="0">Selecciona un driver</option>
+                        @foreach (var driver in drivers)
+                        {
+                            <option value="@driver.DriverId">@driver.FullName - @driver.DriverLicense</option>
+                        }
+                    </select>
+                    <button class="sga-btn alt" @onclick="LoadDriversAsync">Cargar drivers</button>
+                    <button class="sga-btn alt" @onclick="ApplySelectedDriver">Autocompletar Driver ID</button>
+                </div>
             </div>
 
             @if (drivers.Count > 0)
             {
-                <table class="sga-table" style="margin-top:0.5rem;">
-                    <thead>
-                        <tr>
-                            <th>Driver ID</th>
-                            <th>Nombre</th>
-                            <th>Licencia</th>
-                            <th>Disponible</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var driver in drivers)
-                        {
+                <div style="grid-column: 1 / -1;">
+                    <table class="sga-table" style="margin-top:0.5rem;">
+                        <thead>
                             <tr>
-                                <td>@driver.DriverId</td>
-                                <td>@driver.FullName</td>
-                                <td>@driver.DriverLicense</td>
-                                <td>@(driver.IsAvailable ? "Si" : "No")</td>
+                                <th>Driver ID</th>
+                                <th>Nombre</th>
+                                <th>Licencia</th>
+                                <th>Disponible</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var driver in drivers)
+                            {
+                                <tr>
+                                    <td>@driver.DriverId</td>
+                                    <td>@driver.FullName</td>
+                                    <td>@driver.DriverLicense</td>
+                                    <td>@(driver.IsAvailable ? "Si" : "No")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
 
-            <label>Autobus</label>
-            <select class="sga-input" @bind="createModel.BusId">
-                <option value="0">Selecciona un autobus</option>
-                @foreach (var bus in buses)
-                {
-                    <option value="@bus.Id">@bus.LicensePlate - @bus.Model (@bus.Capacity asientos)</option>
-                }
-            </select>
+            <div class="sga-field">
+                <label>Autobus</label>
+                <select class="sga-input" @bind="createModel.BusId">
+                    <option value="0">Selecciona un autobus</option>
+                    @foreach (var bus in buses)
+                    {
+                        <option value="@bus.Id">@bus.LicensePlate - @bus.Model (@bus.Capacity asientos)</option>
+                    }
+                </select>
+            </div>
 
-            <label>Fecha salida</label>
-            <input @bind="createModel.DepartureDate" type="date" class="sga-input" />
+            <div class="sga-field">
+                <label>Fecha salida</label>
+                <input @bind="createModel.DepartureDate" type="date" class="sga-input" />
+            </div>
 
-            <label>Hora salida</label>
-            <input @bind="createModel.DepartureHour" type="time" class="sga-input" />
+            <div class="sga-field">
+                <label>Hora salida</label>
+                <input @bind="createModel.DepartureHour" type="time" class="sga-input" />
+            </div>
 
-            <label>Fecha llegada</label>
-            <input @bind="createModel.ArrivalDate" type="date" class="sga-input" />
+            <div class="sga-field">
+                <label>Fecha llegada</label>
+                <input @bind="createModel.ArrivalDate" type="date" class="sga-input" />
+            </div>
 
-            <label>Hora llegada</label>
-            <input @bind="createModel.ArrivalHour" type="time" class="sga-input" />
+            <div class="sga-field">
+                <label>Hora llegada</label>
+                <input @bind="createModel.ArrivalHour" type="time" class="sga-input" />
+            </div>
 
-            <label>Asientos disponibles</label>
-            <input @bind="createModel.AvailableSeats" type="number" class="sga-input" />
+            <div class="sga-field">
+                <label>Asientos disponibles</label>
+                <input @bind="createModel.AvailableSeats" type="number" class="sga-input" />
+            </div>
 
-            <label>Creado por</label>
-            <input @bind="createdBy" class="sga-input" />
+            <div class="sga-field">
+                <label>Creado por</label>
+                <input @bind="createdBy" class="sga-input" />
+            </div>
 
-            <button class="sga-btn" @onclick="CreateTripAsync">Registrar viaje</button>
-        </div>
+            <button class="sga-btn" style="grid-column: 1 / -1;" @onclick="CreateTripAsync">Registrar viaje</button>
 
     <div class="sga-inline-actions operator-actions">
         <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />

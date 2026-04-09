@@ -77,15 +77,17 @@
             </div>
         </div>
 
-        <div class="sga-form-grid compact">
-            <label>Institucion</label>
-            <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadTripsAsync">
-                <option value="0">Selecciona una institucion</option>
-                @foreach (var institution in institutions)
-                {
-                    <option value="@institution.Id">@institution.Name (@institution.Code)</option>
-                }
-            </select>
+        <div class="sga-form-full single-col">
+            <div class="sga-field">
+                <label>Institucion</label>
+                <select class="sga-input" @bind="selectedInstitutionId" @bind:after="LoadTripsAsync">
+                    <option value="0">Selecciona una institucion</option>
+                    @foreach (var institution in institutions)
+                    {
+                        <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+                    }
+                </select>
+            </div>
         </div>
     </article>
 

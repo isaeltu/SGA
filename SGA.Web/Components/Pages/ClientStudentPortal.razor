@@ -148,9 +148,7 @@
                 <input @bind="guest.PhoneNumber" placeholder="8091234567" class="sga-input" />
             </div>
 
-            <div>
-                <button class="sga-btn" @onclick="CreateGuestReservationAsync">Reservar ahora</button>
-            </div>
+            <button class="sga-btn" @onclick="CreateGuestReservationAsync">Reservar ahora</button>
         </div>
     </article>
 
@@ -162,19 +160,71 @@
     @if (reservation is not null)
     {
         <article class="sga-ticket">
-            <p class="title">Reserva confirmada</p>
-            <p>Reserva: @reservation.Id</p>
-            <p>Viaje: @reservation.TripId</p>
-            <p>QR: @reservation.QrCode</p>
-            <p>Estado: @reservation.Status</p>
-            <p>Turno: @reservation.QueueNumber</p>
+            <div class="sga-ticket-header">
+                <div class="sga-ticket-title">
+                    <h3>Reserva Confirmada</h3>
+                    <div class="sga-ticket-number">Reserva <strong>#@reservation.Id</strong></div>
+                </div>
+                <span class="sga-ticket-status">Confirmado</span>
+            </div>
+
+            <div class="sga-ticket-grid">
+                <div class="sga-ticket-item span-2">
+                    <img src="icons/TRANSPORTE/route.svg" alt="Ruta" />
+                    <div>
+                        <span class="sga-ticket-label">Ruta</span>
+                        <span class="sga-ticket-value">@(reservationTrip is null ? $"Viaje #{reservation.TripId}" : GetRouteLabel(reservationTrip))</span>
+                    </div>
+                </div>
+
+                <div class="sga-ticket-item">
+                    <img src="icons/TRANSPORTE/clock.svg" alt="Fecha" />
+                    <div>
+                        <span class="sga-ticket-label">Fecha del viaje</span>
+                        <span class="sga-ticket-value">@(reservationTrip is null ? "N/D" : FormatLocalDateDate(reservationTrip.ScheduledDepartureTime))</span>
+                    </div>
+                </div>
+
+                <div class="sga-ticket-item">
+                    <img src="icons/TRANSPORTE/clock.svg" alt="Salida" />
+                    <div>
+                        <span class="sga-ticket-label">Hora de salida</span>
+                        <span class="sga-ticket-value">@(reservationTrip is null ? "N/D" : FormatLocalTime(reservationTrip.ScheduledDepartureTime))</span>
+                    </div>
+                </div>
+
+                <div class="sga-ticket-item">
+                    <img src="icons/TRANSPORTE/bus.svg" alt="Bus" />
+                    <div>
+                        <span class="sga-ticket-label">Bus asignado</span>
+                        <span class="sga-ticket-value">@(reservationTrip is null ? "Opcional" : $"Bus #{reservationTrip.BusId}")</span>
+                    </div>
+                </div>
+
+                <div class="sga-ticket-item">
+                    <img src="icons/nav/users.svg" alt="Turno" />
+                    <div>
+                        <span class="sga-ticket-label">Turno</span>
+                        <span class="sga-ticket-value">@reservation.QueueNumber</span>
+                    </div>
+                </div>
+
+                <div class="sga-ticket-item span-2">
+                    <img src="icons/nav/shield.svg" alt="Código" />
+                    <div>
+                        <span class="sga-ticket-label">Código de reserva</span>
+                        <span class="sga-ticket-value">@reservation.QrCode</span>
+                    </div>
+                </div>
+            </div>
 
             <div class="sga-ticket-qr">
                 @if (!string.IsNullOrWhiteSpace(ticketQrBase64))
                 {
-                    <img alt="QR de reserva" src="@($"data:image/png;base64,{ticketQrBase64}")" />
+                    <img alt="Código QR de abordaje" src="@($"data:image/png;base64,{ticketQrBase64}")" />
                 }
-                <div class="hero-actions">
+                <p>Escanea este código al abordar</p>
+                <div class="sga-ticket-actions">
                     <button type="button" class="sga-btn" @onclick="DownloadReservationTicketAsync">Descargar ticket</button>
                     <button type="button" class="sga-btn alt" @onclick="DownloadReservationQrAsync">Descargar QR</button>
                 </div>
@@ -191,6 +241,7 @@
     private int selectedTripId;
     private string? message;
     private SGA.Web.Models.ReservationResponse? reservation;
+    private SGA.Web.Models.TripResponse? reservationTrip;
     private string? ticketQrBase64;
 
     private readonly GuestReservationForm guest = new();
@@ -218,6 +269,7 @@
         if (institutionChanged)
         {
             reservation = null;
+            reservationTrip = null;
             ticketQrBase64 = null;
             selectedTripId = 0;
             lastLoadedInstitutionId = selectedInstitutionId;
@@ -227,6 +279,7 @@
         {
             availableTrips.Clear();
             reservation = null;
+            reservationTrip = null;
             ticketQrBase64 = null;
             return;
         }
@@ -264,6 +317,7 @@
         using var busy = Ui.BeginBusy();
         message = null;
         reservation = null;
+        reservationTrip = null;
 
         if (selectedInstitutionId <= 0)
         {
@@ -295,6 +349,7 @@
             reservation = await ApiClient.GetReservationByIdAsync(reservationId, CancellationToken.None);
             if (reservation is not null)
             {
+                reservationTrip = await ApiClient.GetTripByIdAsync(reservation.TripId, CancellationToken.None);
                 ticketQrBase64 = GenerateQrBase64(reservation.QrCode);
             }
 
@@ -328,10 +383,11 @@
             return;
         }
 
-        var content =
-$"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstado: {reservation.Status}\nTurno: {reservation.QueueNumber}\nQR: {reservation.QrCode}\nGenerado UTC: {reservation.CreatedAt:O}";
+        reservationTrip ??= await ApiClient.GetTripByIdAsync(reservation.TripId, CancellationToken.None);
+        ticketQrBase64 ??= GenerateQrBase64(reservation.QrCode);
 
-        await JS.InvokeVoidAsync("sgaUi.downloadTextFile", $"reserva-{reservation.Id}.txt", content);
+        var content = BuildReservationTicketHtml(reservation, reservationTrip, ticketQrBase64);
+        await JS.InvokeVoidAsync("sgaUi.downloadHtmlFile", $"reserva-{reservation.Id}.html", content);
         Ui.ShowSuccess("Ticket descargado", "El archivo de ticket se descargo correctamente.");
     }
 
@@ -359,4 +415,81 @@ $"Ticket SGA-ITLA\nReserva: {reservation.Id}\nViaje: {reservation.TripId}\nEstad
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
+
+    private static string BuildReservationTicketHtml(
+        SGA.Web.Models.ReservationResponse reservation,
+        SGA.Web.Models.TripResponse? trip,
+        string? qrBase64)
+    {
+        var routeLabel = trip is null ? $"Viaje #{reservation.TripId}" : GetRouteLabel(trip);
+        var departureDate = trip is null ? "N/D" : FormatLocalDateDate(trip.ScheduledDepartureTime);
+        var departureTime = trip is null ? "N/D" : FormatLocalTime(trip.ScheduledDepartureTime);
+        var busLabel = trip is null ? "Opcional" : $"Bus #{trip.BusId}";
+        var qrImage = string.IsNullOrWhiteSpace(qrBase64)
+            ? string.Empty
+            : $"<img alt='Código QR de abordaje' style='width:180px;height:180px;border:1px solid #d1d5db;border-radius:12px;padding:10px;background:#fff;' src='data:image/png;base64,{qrBase64}' />";
+
+        return $@"<!doctype html>
+<html lang='es'>
+<head>
+    <meta charset='utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1' />
+    <title>Reserva {reservation.Id}</title>
+    <style>
+        body {{ margin: 0; font-family: Segoe UI, Arial, sans-serif; background: #f4f7fb; color: #1f2937; padding: 24px; }}
+        .ticket {{ max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08); overflow: hidden; }}
+        .head {{ padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; gap: 16px; align-items: start; }}
+        .title {{ display: grid; gap: 6px; }}
+        .title h1 {{ margin: 0; font-size: 24px; color: #005f73; }}
+        .number {{ font-size: 14px; color: #64748b; }}
+        .number strong {{ color: #111827; font-size: 16px; }}
+        .badge {{ padding: 8px 12px; border-radius: 999px; background: rgba(31,143,95,.12); color: #1f8f5f; font-size: 12px; font-weight: 800; }}
+        .grid {{ padding: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
+        .item {{ display: flex; gap: 10px; padding: 14px 16px; background: #fafafa; border: 1px solid #edf2f7; border-radius: 8px; }}
+        .item.full {{ grid-column: 1 / -1; }}
+        .label {{ display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; font-weight: 700; }}
+        .value {{ font-size: 15px; font-weight: 700; color: #111827; line-height: 1.35; }}
+        .qr {{ padding: 0 24px 24px; display: grid; gap: 12px; justify-items: center; text-align: center; }}
+        .qr img {{ width: 180px; height: 180px; border: 1px solid #d1d5db; border-radius: 12px; padding: 10px; background: #fff; }}
+        .qr p {{ margin: 0; color: #64748b; font-size: 13px; }}
+        @media print {{ body {{ background: #fff; padding: 0; }} .ticket {{ box-shadow: none; border: 0; }} }}
+    </style>
+</head>
+<body>
+    <section class='ticket'>
+        <div class='head'>
+            <div class='title'>
+                <h1>Reserva Confirmada</h1>
+                <div class='number'>Reserva <strong>#{reservation.Id}</strong></div>
+            </div>
+            <div class='badge'>Confirmado</div>
+        </div>
+        <div class='grid'>
+            <div class='item full'><div><span class='label'>Ruta</span><span class='value'>{EscapeHtml(routeLabel)}</span></div></div>
+            <div class='item'><div><span class='label'>Fecha del viaje</span><span class='value'>{departureDate}</span></div></div>
+            <div class='item'><div><span class='label'>Hora de salida</span><span class='value'>{departureTime}</span></div></div>
+            <div class='item'><div><span class='label'>Bus asignado</span><span class='value'>{EscapeHtml(busLabel)}</span></div></div>
+            <div class='item'><div><span class='label'>Turno</span><span class='value'>{reservation.QueueNumber}</span></div></div>
+            <div class='item full'><div><span class='label'>Código de reserva</span><span class='value'>{EscapeHtml(reservation.QrCode)}</span></div></div>
+        </div>
+        <div class='qr'>
+            {qrImage}
+            <p>Escanea este código al abordar</p>
+        </div>
+    </section>
+</body>
+</html>";
+    }
+
+    private static string GetRouteLabel(SGA.Web.Models.TripResponse trip)
+        => string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName;
+
+    private static string FormatLocalDateDate(DateTime value)
+        => value.ToLocalTime().ToString("dd/MM/yyyy");
+
+    private static string FormatLocalTime(DateTime value)
+        => value.ToLocalTime().ToString("hh:mm tt");
+
+    private static string EscapeHtml(string value)
+        => System.Net.WebUtility.HtmlEncode(value);
 }
