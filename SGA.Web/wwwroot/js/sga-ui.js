@@ -4,6 +4,9 @@ window.sgaUi = {
     if (!sidebar) return;
     sidebar.classList.toggle('open');
   },
+  confirmAction: function (message) {
+    return window.confirm(message);
+  },
   downloadTextFile: function (filename, content) {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);

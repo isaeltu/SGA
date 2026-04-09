@@ -3,32 +3,132 @@
 @inject SGA.Web.Services.SgaApiClient ApiClient
 @inject SGA.Web.Services.PortalSessionService Session
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject SGA.Web.Services.UiFeedbackService Ui
 
 <section class="sga-section">
-    <h1>Portal Operador</h1>
-    <p class="lead">Gestiona buses, rutas y viajes para que los clientes reserven con informacion clara.</p>
-
-    <div class="sga-form-grid">
-        <label>Institucion de trabajo</label>
-        @if (Session.InstitutionId > 0)
-        {
-            <input class="sga-input" value="@institutionLabel" readonly />
-        }
-        else
-        {
-            <select class="sga-input" @bind="selectedInstitutionId" @bind:after="OnInstitutionChangedAsync">
-                <option value="0">Selecciona una institucion</option>
-                @foreach (var institution in institutions)
-                {
-                    <option value="@institution.Id">@institution.Name (@institution.Code)</option>
-                }
-            </select>
-        }
+    <div>
+        <h1>Portal Operador</h1>
+        <p class="lead">Gestiona buses, rutas y viajes para que los clientes reserven con informacion clara.</p>
     </div>
 
-    <article class="sga-card">
-        <h3>Crear autobus</h3>
+    <div class="sga-metrics-grid">
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/transport/bus.svg" alt="Buses" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Buses</span>
+                <div class="sga-metric-value">@buses.Count</div>
+                <p class="sga-metric-copy">Unidades activas en la institucion actual.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-buses">
+                    <img src="icons/nav/plus.svg" alt="" />
+                    Registrar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/map-pin.svg" alt="Rutas" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Rutas</span>
+                <div class="sga-metric-value">@routes.Count</div>
+                <p class="sga-metric-copy">Trayectos disponibles para programar viajes.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-routes">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Revisar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/navigation.svg" alt="Viajes" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Viajes</span>
+                <div class="sga-metric-value">@trips.Count</div>
+                <p class="sga-metric-copy">Servicios cargados para la operación diaria.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-trips">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Ver viajes
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/user.svg" alt="Drivers" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Drivers</span>
+                <div class="sga-metric-value">@drivers.Count</div>
+                <p class="sga-metric-copy">Conductores disponibles para asignacion.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-trips">
+                    <img src="icons/nav/plus.svg" alt="" />
+                    Asignar
+                </a>
+            </div>
+        </article>
+    </div>
+
+    <article class="sga-card" id="section-contexto">
+        <div class="sga-card-header">
+            <div>
+                <h3>Contexto de trabajo</h3>
+                <p class="sga-panel-note">Selecciona la institucion para cargar buses, rutas, drivers y viajes.</p>
+            </div>
+            <div class="sga-row-actions">
+                <button type="button" class="sga-icon-btn alt" @onclick="LoadInstitutionContextAsync" title="Recargar contexto">
+                    <img src="icons/nav/eye.svg" alt="" />
+                </button>
+            </div>
+        </div>
+
         <div class="sga-form-grid compact">
+            <label>Institucion de trabajo</label>
+            @if (Session.InstitutionId > 0)
+            {
+                <input class="sga-input" value="@institutionLabel" readonly />
+            }
+            else
+            {
+                <select class="sga-input" @bind="selectedInstitutionId" @bind:after="OnInstitutionChangedAsync">
+                    <option value="0">Selecciona una institucion</option>
+                    @foreach (var institution in institutions)
+                    {
+                        <option value="@institution.Id">@institution.Name (@institution.Code)</option>
+                    }
+                </select>
+            }
+        </div>
+    </article>
+
+    <div class="sga-two-col">
+        <article class="sga-card" id="section-buses">
+            <div class="sga-card-header">
+                <div>
+                    <h3>Autobuses</h3>
+                    <p class="sga-panel-note">Alta, consulta y baja de la flota asignada a la institucion.</p>
+                </div>
+                <div class="sga-row-actions">
+                    <button type="button" class="sga-icon-btn alt" @onclick="LoadBusesAsync" title="Refrescar buses">
+                        <img src="icons/nav/eye.svg" alt="" />
+                    </button>
+                </div>
+            </div>
+
+            <div class="sga-form-grid compact">
             <label>Placa</label>
             <input @bind="busModel.LicensePlate" class="sga-input" />
 
@@ -44,43 +144,63 @@
             <button class="sga-btn alt" @onclick="CreateBusAsync">Registrar autobus</button>
         </div>
 
-        @if (buses.Count > 0)
-        {
-            <table class="sga-table" style="margin-top:1rem;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Placa</th>
-                        <th>Modelo</th>
-                        <th>Capacidad</th>
-                        <th>Accion</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var bus in buses)
-                    {
+            @if (buses.Count > 0)
+            {
+                <table class="sga-table" style="margin-top:1rem;">
+                    <thead>
                         <tr>
-                            <td>@bus.Id</td>
-                            <td>@bus.LicensePlate</td>
-                            <td>@bus.Model</td>
-                            <td>@bus.Capacity</td>
-                            <td>
-                                <button class="sga-btn danger" @onclick="() => DeleteBusAsync(bus.Id)">Eliminar</button>
-                            </td>
+                            <th>ID</th>
+                            <th>Placa</th>
+                            <th>Modelo</th>
+                            <th>Capacidad</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <div class="sga-empty">No hay buses registrados para esta institucion.</div>
-        }
-    </article>
+                    </thead>
+                    <tbody>
+                        @foreach (var bus in buses)
+                        {
+                            <tr>
+                                <td>@bus.Id</td>
+                                <td>@bus.LicensePlate</td>
+                                <td>@bus.Model</td>
+                                <td>@bus.Capacity</td>
+                                <td>@bus.Status</td>
+                                <td>
+                                    <div class="sga-row-actions">
+                                        <button type="button" class="sga-icon-btn alt" @onclick="() => SelectBus(bus)" title="Seleccionar bus">
+                                            <img src="icons/nav/eye.svg" alt="" />
+                                        </button>
+                                        <button type="button" class="sga-icon-btn danger" @onclick="() => DeleteBusAsync(bus.Id)" title="Eliminar bus">
+                                            <img src="icons/nav/trash.svg" alt="" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="sga-empty">No hay buses registrados para esta institucion.</div>
+            }
+        </article>
 
-    <article class="sga-card">
-        <h3>Crear ruta</h3>
-        <div class="sga-form-grid compact">
+        <article class="sga-card" id="section-routes">
+            <div class="sga-card-header">
+                <div>
+                    <h3>Rutas</h3>
+                    <p class="sga-panel-note">Configura trayectos, edita datos y activa o elimina rutas.</p>
+                </div>
+                <div class="sga-row-actions">
+                    <button type="button" class="sga-icon-btn alt" @onclick="LoadRoutesAsync" title="Refrescar rutas">
+                        <img src="icons/nav/eye.svg" alt="" />
+                    </button>
+                </div>
+            </div>
+
+            <div class="sga-form-grid compact">
             <label>Nombre de ruta</label>
             <input @bind="routeModel.Name" class="sga-input" />
 
@@ -99,80 +219,103 @@
             <button class="sga-btn alt" @onclick="CreateRouteAsync">Registrar ruta</button>
         </div>
 
-        <div class="sga-form-grid compact" style="margin-top:1rem;">
-            <label>Ruta seleccionada para editar</label>
-            <select class="sga-input" @bind="selectedRouteId" @bind:after="LoadSelectedRouteForEditAsync">
-                <option value="0">Selecciona una ruta</option>
-                @foreach (var route in routes)
-                {
-                    <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
-                }
-            </select>
-
-            @if (selectedRouteId > 0)
-            {
-                <label>Nombre (edicion)</label>
-                <input @bind="routeEditModel.Name" class="sga-input" />
-
-                <label>Origen (edicion)</label>
-                <input @bind="routeEditModel.Origin" class="sga-input" />
-
-                <label>Destino (edicion)</label>
-                <input @bind="routeEditModel.Destination" class="sga-input" />
-
-                <label>Distancia (km)</label>
-                <input @bind="routeEditModel.DistanceKm" type="number" step="0.1" class="sga-input" />
-
-                <label>Duracion estimada (min)</label>
-                <input @bind="routeEditModel.EstimatedDurationMinutes" type="number" class="sga-input" />
-
-                <label>Activa</label>
-                <input @bind="routeEditModel.IsActive" type="checkbox" class="sga-input" />
-
-                <button class="sga-btn alt" @onclick="UpdateRouteAsync">Actualizar ruta</button>
-                <button class="sga-btn danger" @onclick="DeleteSelectedRouteAsync">Eliminar ruta</button>
-            }
-        </div>
-
-        <div class="sga-inline-actions operator-actions" style="margin-top:1rem;">
-            <button class="sga-btn alt" @onclick="LoadRoutesAsync">Recargar rutas</button>
-            <span>Total rutas: @routes.Count</span>
-        </div>
-
-        @if (routes.Count > 0)
-        {
-            <table class="sga-table" style="margin-top:1rem;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Origen</th>
-                        <th>Destino</th>
-                        <th>Activa</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div class="sga-form-grid compact" style="margin-top:1rem;">
+                <label>Ruta seleccionada para editar</label>
+                <select class="sga-input" @bind="selectedRouteId" @bind:after="LoadSelectedRouteForEditAsync">
+                    <option value="0">Selecciona una ruta</option>
                     @foreach (var route in routes)
                     {
-                        <tr>
-                            <td>@route.Id</td>
-                            <td>@route.Name</td>
-                            <td>@route.Origin</td>
-                            <td>@route.Destination</td>
-                            <td>@(route.IsActive ? "Si" : "No")</td>
-                        </tr>
+                        <option value="@route.Id">@route.Name (@route.Origin -> @route.Destination)</option>
                     }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <div class="sga-empty">No hay rutas disponibles. Crea una ruta para habilitar viajes.</div>
-        }
-    </article>
+                </select>
 
-    <article class="sga-card">
-        <h3>Crear viaje</h3>
+                @if (selectedRouteId > 0)
+                {
+                    <label>Nombre (edicion)</label>
+                    <input @bind="routeEditModel.Name" class="sga-input" />
+
+                    <label>Origen (edicion)</label>
+                    <input @bind="routeEditModel.Origin" class="sga-input" />
+
+                    <label>Destino (edicion)</label>
+                    <input @bind="routeEditModel.Destination" class="sga-input" />
+
+                    <label>Distancia (km)</label>
+                    <input @bind="routeEditModel.DistanceKm" type="number" step="0.1" class="sga-input" />
+
+                    <label>Duracion estimada (min)</label>
+                    <input @bind="routeEditModel.EstimatedDurationMinutes" type="number" class="sga-input" />
+
+                    <label>Activa</label>
+                    <input @bind="routeEditModel.IsActive" type="checkbox" class="sga-input" />
+
+                    <button class="sga-btn alt" @onclick="UpdateRouteAsync">Actualizar ruta</button>
+                    <button class="sga-btn danger" @onclick="DeleteSelectedRouteAsync">Eliminar ruta</button>
+                }
+            </div>
+
+            <div class="sga-inline-actions operator-actions" style="margin-top:1rem;">
+                <button class="sga-btn alt" @onclick="LoadRoutesAsync">Recargar rutas</button>
+                <span>Total rutas: @routes.Count</span>
+            </div>
+
+            @if (routes.Count > 0)
+            {
+                <table class="sga-table" style="margin-top:1rem;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Origen</th>
+                            <th>Destino</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var route in routes)
+                        {
+                            <tr>
+                                <td>@route.Id</td>
+                                <td>@route.Name</td>
+                                <td>@route.Origin</td>
+                                <td>@route.Destination</td>
+                                <td>@(route.IsActive ? "Activa" : "Inactiva")</td>
+                                <td>
+                                    <div class="sga-row-actions">
+                                        <button type="button" class="sga-icon-btn alt" @onclick="() => SelectRoute(route.Id)" title="Editar ruta">
+                                            <img src="icons/nav/pencil.svg" alt="" />
+                                        </button>
+                                        <button type="button" class="sga-icon-btn danger" @onclick="() => DeleteRouteByIdAsync(route.Id)" title="Eliminar ruta">
+                                            <img src="icons/nav/trash.svg" alt="" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="sga-empty">No hay rutas disponibles. Crea una ruta para habilitar viajes.</div>
+            }
+        </article>
+    </div>
+
+    <article class="sga-card" id="section-trips">
+        <div class="sga-card-header">
+            <div>
+                <h3>Viajes</h3>
+                <p class="sga-panel-note">Programa salidas, inicia, completa o cancela desde un mismo panel.</p>
+            </div>
+            <div class="sga-row-actions">
+                <button type="button" class="sga-icon-btn alt" @onclick="LoadTripsAsync" title="Refrescar viajes">
+                    <img src="icons/nav/eye.svg" alt="" />
+                </button>
+            </div>
+        </div>
+
         <div class="sga-form-grid compact">
             <label>Ruta</label>
             <select class="sga-input" @bind="createModel.RouteId">
@@ -253,40 +396,54 @@
 
             <button class="sga-btn" @onclick="CreateTripAsync">Registrar viaje</button>
         </div>
-    </article>
 
-    <div class="sga-inline-actions operator-actions">
-        <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
-        <input @bind="modifiedBy" class="sga-input" placeholder="Usuario operador" />
-        <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
-        <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
-        <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
-    </div>
+        <div class="sga-inline-actions operator-actions" style="margin-top:1rem;">
+            <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
+            <input @bind="modifiedBy" class="sga-input" placeholder="Usuario operador" />
+            <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
+            <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
+            <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+        </div>
+
+        @if (trips.Count > 0)
+        {
+            <div class="sga-grid-cards" style="margin-top:1rem;">
+                @foreach (var trip in trips)
+                {
+                    <article class="sga-card sga-trip-card" @onclick="() => selectedTripId = trip.Id">
+                        <div class="sga-card-header">
+                            <div>
+                                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
+                                <p class="sga-panel-note">Viaje #@trip.Id | Bus @trip.BusId | Driver @trip.DriverId</p>
+                            </div>
+                            <span class="sga-status-pill">@trip.Status</span>
+                        </div>
+
+                        <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                        <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                        <p>Disponibles: @trip.AvailableSeats</p>
+
+                        <div class="sga-row-actions">
+                            <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => selectedTripId = trip.Id" title="Seleccionar viaje">
+                                <img src="icons/nav/eye.svg" alt="" />
+                            </button>
+                            <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="StartTripAsync" title="Iniciar viaje">
+                                <img src="icons/nav/navigation.svg" alt="" />
+                            </button>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sga-empty" style="margin-top:1rem;">Aun no hay viajes cargados para esta institucion.</div>
+        }
+    </article>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <p class="sga-alert">@message</p>
-    }
-
-    @if (trips.Count > 0)
-    {
-        <div class="sga-grid-cards">
-            @foreach (var trip in trips)
-            {
-                <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
-                    <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
-                    <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Driver: @trip.DriverId | Bus: @trip.BusId</p>
-                    <p>Estado: @trip.Status</p>
-                    <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
-                    <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
-                    <p>Disponibles: @trip.AvailableSeats</p>
-                </article>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="sga-empty">Aun no hay viajes cargados para esta institucion.</div>
     }
 </section>
 
@@ -313,6 +470,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Operator))
         {
             redirectToLogin = true;
@@ -357,6 +515,7 @@
 
     private async Task LoadTripsAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedInstitutionId <= 0)
         {
             trips.Clear();
@@ -372,11 +531,13 @@
         {
             trips.Clear();
             message = $"No se pudieron cargar viajes: {ex.Message}";
+            Ui.ShowError("No se pudieron cargar los viajes", ex.Message);
         }
     }
 
     private async Task LoadRoutesAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedInstitutionId <= 0)
         {
             routes.Clear();
@@ -390,17 +551,24 @@
             if (routes.Count > 0)
             {
                 message = $"Se cargaron {routes.Count} rutas.";
+                Ui.ShowSuccess("Rutas cargadas", message);
+            }
+            else
+            {
+                Ui.ShowInfo("Sin rutas", "No hay rutas activas para esta institucion.");
             }
         }
         catch (Exception ex)
         {
             routes.Clear();
             message = $"No se pudieron cargar rutas: {ex.Message}";
+            Ui.ShowError("No se pudieron cargar las rutas", ex.Message);
         }
     }
 
     private async Task LoadBusesAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedInstitutionId <= 0)
         {
             buses.Clear();
@@ -416,11 +584,13 @@
         {
             buses.Clear();
             message = $"No se pudieron cargar autobuses: {ex.Message}";
+            Ui.ShowError("No se pudieron cargar los buses", ex.Message);
         }
     }
 
     private async Task LoadDriversAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedInstitutionId <= 0)
         {
             drivers.Clear();
@@ -435,16 +605,19 @@
             if (drivers.Count == 0)
             {
                 message = "No hay drivers disponibles para esta institucion.";
+                Ui.ShowInfo("Sin drivers", message);
             }
             else
             {
                 message = $"Se cargaron {drivers.Count} drivers.";
+                Ui.ShowSuccess("Drivers cargados", message);
             }
         }
         catch (Exception ex)
         {
             drivers.Clear();
             message = $"No se pudieron cargar drivers: {ex.Message}";
+            Ui.ShowError("No se pudieron cargar los drivers", ex.Message);
         }
     }
 
@@ -458,10 +631,12 @@
 
         createModel.DriverId = selectedDriverId;
         message = $"Driver ID autocompletado: {selectedDriverId}.";
+        Ui.ShowSuccess("Driver asignado", message);
     }
 
     private async Task CreateBusAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (string.IsNullOrWhiteSpace(busModel.LicensePlate) || string.IsNullOrWhiteSpace(busModel.Model) || busModel.Capacity <= 0)
         {
@@ -489,31 +664,42 @@
                 CancellationToken.None);
 
             message = $"Autobus registrado con ID {busId}.";
+            Ui.ShowSuccess("Bus registrado", message);
             await LoadBusesAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo registrar el autobus", ex.Message);
         }
     }
 
     private async Task DeleteBusAsync(int busId)
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         try
         {
+            if (!await ConfirmActionAsync($"Eliminar el autobus {busId}?"))
+            {
+                return;
+            }
+
             await ApiClient.DeleteBusAsync(busId, CancellationToken.None);
             message = $"Autobus {busId} eliminado correctamente.";
+            Ui.ShowWarning("Bus eliminado", message);
             await LoadBusesAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo eliminar el autobus", ex.Message);
         }
     }
 
     private async Task CreateRouteAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (string.IsNullOrWhiteSpace(routeModel.Name) ||
             string.IsNullOrWhiteSpace(routeModel.Origin) ||
@@ -539,6 +725,7 @@
                 CancellationToken.None);
 
             message = $"Ruta registrada con ID {routeId}.";
+            Ui.ShowSuccess("Ruta registrada", message);
             await LoadRoutesAsync();
             selectedRouteId = routeId;
             await LoadSelectedRouteForEditAsync();
@@ -546,11 +733,13 @@
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo registrar la ruta", ex.Message);
         }
     }
 
     private async Task LoadSelectedRouteForEditAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedRouteId <= 0)
         {
             return;
@@ -562,6 +751,7 @@
             if (route is null)
             {
                 message = "No se pudo cargar la ruta seleccionada.";
+                Ui.ShowWarning("Ruta no encontrada", message);
                 return;
             }
 
@@ -575,11 +765,13 @@
         catch (Exception ex)
         {
             message = $"No se pudo cargar la ruta para editar: {ex.Message}";
+            Ui.ShowError("No se pudo cargar la ruta", ex.Message);
         }
     }
 
     private async Task UpdateRouteAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedRouteId <= 0)
         {
             message = "Selecciona una ruta para actualizar.";
@@ -602,17 +794,23 @@
                 CancellationToken.None);
 
             message = "Ruta actualizada correctamente.";
+            Ui.ShowSuccess("Ruta actualizada", message);
             await LoadRoutesAsync();
         }
         catch (Exception ex)
         {
             message = $"No se pudo actualizar la ruta: {ex.Message}";
+            Ui.ShowError("No se pudo actualizar la ruta", ex.Message);
         }
     }
 
     private async Task DeleteSelectedRouteAsync()
+        => await DeleteRouteByIdAsync(selectedRouteId);
+
+    private async Task DeleteRouteByIdAsync(int routeId)
     {
-        if (selectedRouteId <= 0)
+        using var busy = Ui.BeginBusy();
+        if (routeId <= 0)
         {
             message = "Selecciona una ruta para eliminar.";
             return;
@@ -620,19 +818,45 @@
 
         try
         {
-            await ApiClient.DeleteRouteAsync(selectedRouteId, CancellationToken.None);
+            if (!await ConfirmActionAsync($"Eliminar la ruta {routeId}?"))
+            {
+                return;
+            }
+
+            await ApiClient.DeleteRouteAsync(routeId, CancellationToken.None);
             message = "Ruta eliminada correctamente.";
-            selectedRouteId = 0;
+            Ui.ShowWarning("Ruta eliminada", message);
+            if (selectedRouteId == routeId)
+            {
+                selectedRouteId = 0;
+            }
+
             await LoadRoutesAsync();
         }
         catch (Exception ex)
         {
             message = $"No se pudo eliminar la ruta: {ex.Message}";
+            Ui.ShowError("No se pudo eliminar la ruta", ex.Message);
         }
+    }
+
+    private void SelectBus(SGA.Web.Models.BusResponse bus)
+    {
+        message = $"Bus seleccionado: {bus.LicensePlate}.";
+        Ui.ShowInfo("Bus seleccionado", message);
+    }
+
+    private void SelectRoute(int routeId)
+    {
+        selectedRouteId = routeId;
+        _ = LoadSelectedRouteForEditAsync();
+        message = $"Ruta seleccionada: {routeId}.";
+        Ui.ShowInfo("Ruta seleccionada", message);
     }
 
     private async Task CreateTripAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedInstitutionId <= 0)
         {
@@ -665,11 +889,13 @@
 
             selectedTripId = id;
             message = $"Viaje registrado con ID {id}.";
+            Ui.ShowSuccess("Viaje registrado", message);
             await LoadTripsAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo registrar el viaje", ex.Message);
         }
     }
 
@@ -687,6 +913,7 @@
 
     private async Task LoadInstitutionContextAsync()
     {
+        using var busy = Ui.BeginBusy();
         if (selectedInstitutionId <= 0)
         {
             institutionLabel = "No asignada";
@@ -708,6 +935,7 @@
         {
             institutionLabel = $"Institucion ID {selectedInstitutionId}";
             message = $"No se pudo cargar la institucion seleccionada: {ex.Message}";
+            Ui.ShowError("No se pudo cargar el contexto", ex.Message);
         }
 
         await LoadRoutesAsync();
@@ -730,18 +958,22 @@
 
     private async Task StartTripAsync() => await ExecuteTripActionAsync(
         () => ApiClient.StartTripAsync(new SGA.Web.Models.StartTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
-        "Viaje iniciado.");
+        "Viaje iniciado.",
+        "Viaje iniciado");
 
     private async Task CompleteTripAsync() => await ExecuteTripActionAsync(
         () => ApiClient.CompleteTripAsync(new SGA.Web.Models.CompleteTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
-        "Viaje completado.");
+        "Viaje completado.",
+        "Viaje completado");
 
     private async Task CancelTripAsync() => await ExecuteTripActionAsync(
         () => ApiClient.CancelTripAsync(new SGA.Web.Models.CancelTripRequest(selectedTripId, modifiedBy), CancellationToken.None),
-        "Viaje cancelado.");
+        "Viaje cancelado.",
+        "Viaje cancelado");
 
-    private async Task ExecuteTripActionAsync(Func<Task> action, string successMessage)
+    private async Task ExecuteTripActionAsync(Func<Task> action, string successMessage, string toastTitle)
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedTripId <= 0)
         {
@@ -753,13 +985,18 @@
         {
             await action();
             message = successMessage;
+            Ui.ShowSuccess(toastTitle, successMessage);
             await LoadTripsAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError($"No se pudo {toastTitle.ToLowerInvariant()}", ex.Message);
         }
     }
+
+    private Task<bool> ConfirmActionAsync(string message)
+        => JS.InvokeAsync<bool>("sgaUi.confirmAction", message).AsTask();
 
     private sealed class TripCreateForm
     {

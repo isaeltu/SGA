@@ -26,6 +26,7 @@ namespace SGA.Web
                 client.BaseAddress = new Uri(settings.BaseUrl);
             });
             builder.Services.AddScoped<PortalSessionService>();
+            builder.Services.AddScoped<UiFeedbackService>();
 
             var app = builder.Build();
 

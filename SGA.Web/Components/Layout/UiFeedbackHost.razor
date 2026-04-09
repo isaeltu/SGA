@@ -1,0 +1,59 @@
+@implements IDisposable
+@inject SGA.Web.Services.UiFeedbackService Ui
+
+<div class="sga-toast-stack" aria-live="polite" aria-atomic="true">
+    @foreach (var toast in Ui.Toasts)
+    {
+        <article class="sga-toast @GetCssClass(toast.Kind)">
+            <div class="sga-toast-icon">@GetIcon(toast.Kind)</div>
+            <div class="sga-toast-body">
+                <strong>@toast.Title</strong>
+                <p>@toast.Message</p>
+            </div>
+            <button type="button" class="sga-toast-close" @onclick="() => Ui.Dismiss(toast.Id)" aria-label="Cerrar">×</button>
+        </article>
+    }
+</div>
+
+@if (Ui.IsBusy)
+{
+    <div class="sga-loading-overlay" role="status" aria-live="polite" aria-label="Cargando">
+        <div class="sga-loading-card">
+            <div class="sga-spinner"></div>
+            <strong>Procesando solicitud</strong>
+            <span>Espere un momento.</span>
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Ui.Changed += HandleChanged;
+    }
+
+    private void HandleChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private static string GetCssClass(SGA.Web.Services.UiFeedbackService.ToastKind kind)
+        => kind switch
+        {
+            SGA.Web.Services.UiFeedbackService.ToastKind.Success => "success",
+            SGA.Web.Services.UiFeedbackService.ToastKind.Warning => "warning",
+            SGA.Web.Services.UiFeedbackService.ToastKind.Error => "error",
+            _ => "info"
+        };
+
+    private static string GetIcon(SGA.Web.Services.UiFeedbackService.ToastKind kind)
+        => kind switch
+        {
+            SGA.Web.Services.UiFeedbackService.ToastKind.Success => "✓",
+            SGA.Web.Services.UiFeedbackService.ToastKind.Warning => "!",
+            SGA.Web.Services.UiFeedbackService.ToastKind.Error => "×",
+            _ => "i"
+        };
+
+    public void Dispose()
+    {
+        Ui.Changed -= HandleChanged;
+    }
+}

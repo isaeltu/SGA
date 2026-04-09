@@ -3,13 +3,87 @@
 @inject SGA.Web.Services.SgaApiClient ApiClient
 @inject SGA.Web.Services.PortalSessionService Session
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject SGA.Web.Services.UiFeedbackService Ui
 
 <section class="sga-section">
-    <h1>Portal Administrador</h1>
-    <p class="lead">Gestiona roles y permisos para organizar el acceso por perfil.</p>
+    <div>
+        <h1>Portal Administrador</h1>
+        <p class="lead">Gestiona instituciones, roles, permisos y usuarios con un panel limpio y directo.</p>
+    </div>
+
+    <div class="sga-metrics-grid">
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/building.svg" alt="Instituciones" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Instituciones</span>
+                <div class="sga-metric-value">@institutions.Count</div>
+                <p class="sga-metric-copy">Instituciones activas y cargadas en la sesión actual.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-institutions">
+                    <img src="icons/nav/plus.svg" alt="" />
+                    Administrar
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/shield.svg" alt="Roles" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Roles</span>
+                <div class="sga-metric-value">@RoleCount</div>
+                <p class="sga-metric-copy">Perfiles base disponibles para controlar el acceso.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-roles">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Ver roles
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/lock.svg" alt="Permisos" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Permisos</span>
+                <div class="sga-metric-value">@PermissionCount</div>
+                <p class="sga-metric-copy">Permisos recomendados para el ecosistema SGA-ITLA.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-permissions">
+                    <img src="icons/nav/eye.svg" alt="" />
+                    Ver permisos
+                </a>
+            </div>
+        </article>
+
+        <article class="sga-metric-card">
+            <div class="sga-metric-icon">
+                <img src="icons/nav/user.svg" alt="Drivers" />
+            </div>
+            <div>
+                <span class="sga-metric-label">Drivers</span>
+                <div class="sga-metric-value">@drivers.Count</div>
+                <p class="sga-metric-copy">Drivers registrados para operar la flota institucional.</p>
+            </div>
+            <div class="sga-metric-actions">
+                <a class="sga-btn alt" href="#section-drivers">
+                    <img src="icons/nav/plus.svg" alt="" />
+                    Gestionar
+                </a>
+            </div>
+        </article>
+    </div>
 
     <div class="sga-two-col">
-        <article class="sga-card">
+        <article class="sga-card" id="section-institutions">
             <h3>Crear institucion</h3>
             <div class="sga-form-grid compact">
                 <label>Codigo</label>
@@ -25,7 +99,7 @@
             </div>
         </article>
 
-        <article class="sga-card">
+        <article class="sga-card" id="section-roles">
             <h3>Crear rol</h3>
             <div class="sga-form-grid compact">
                 <label>Nombre del rol</label>
@@ -41,7 +115,7 @@
             </div>
         </article>
 
-        <article class="sga-card">
+        <article class="sga-card" id="section-permissions">
             <h3>Crear permiso</h3>
             <div class="sga-form-grid compact">
                 <label>Nombre del permiso</label>
@@ -58,7 +132,7 @@
         </article>
     </div>
 
-    <article class="sga-card">
+    <article class="sga-card" id="section-drivers">
         <h3>Agregar driver de la organizacion</h3>
         <p>Este flujo esta pensado para registrar drivers rapidamente en la institucion del administrador.</p>
 
@@ -191,6 +265,7 @@
                         <th>Codigo</th>
                         <th>Nombre</th>
                         <th>Activa</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -201,6 +276,19 @@
                             <td>@institution.Code</td>
                             <td>@institution.Name</td>
                             <td>@(institution.IsActive ? "Si" : "No")</td>
+                            <td>
+                                <div class="sga-row-actions">
+                                    <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => SelectInstitution(institution)" title="Ver institucion">
+                                        <img src="icons/nav/eye.svg" alt="" />
+                                    </button>
+                                    <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => SelectInstitution(institution)" title="Editar institucion">
+                                        <img src="icons/nav/pencil.svg" alt="" />
+                                    </button>
+                                    <button type="button" class="sga-icon-btn danger" @onclick:stopPropagation="true" @onclick="() => DeleteInstitutionAsync(institution.Id)" title="Eliminar institucion">
+                                        <img src="icons/nav/trash.svg" alt="" />
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -245,6 +333,7 @@
                         <th>Modelo</th>
                         <th>Anio</th>
                         <th>Capacidad</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -257,6 +346,19 @@
                             <td>@bus.Model</td>
                             <td>@bus.Year</td>
                             <td>@bus.Capacity</td>
+                            <td>
+                                <div class="sga-row-actions">
+                                    <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => SelectBus(bus)" title="Ver bus">
+                                        <img src="icons/nav/eye.svg" alt="" />
+                                    </button>
+                                    <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => SelectBus(bus)" title="Editar bus">
+                                        <img src="icons/nav/pencil.svg" alt="" />
+                                    </button>
+                                    <button type="button" class="sga-icon-btn danger" @onclick:stopPropagation="true" @onclick="() => DeleteBusAsync(bus.Id)" title="Eliminar bus">
+                                        <img src="icons/nav/trash.svg" alt="" />
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -331,6 +433,9 @@
 </section>
 
 @code {
+    private const int RoleCount = 4;
+    private const int PermissionCount = 13;
+
     private string institutionCode = string.Empty;
     private string institutionName = string.Empty;
     private string roleName = string.Empty;
@@ -342,6 +447,7 @@
     private readonly NewUserForm newUser = new();
     private readonly QuickDriverForm quickDriver = new();
     private List<SGA.Web.Models.InstitutionResponse> institutions = new();
+    private List<SGA.Web.Models.DriverLookupResponse> drivers = new();
     private List<SGA.Web.Models.BusResponse> buses = new();
     private int selectedInstitutionId;
     private string institutionEditCode = string.Empty;
@@ -356,7 +462,7 @@
     private string? message;
     private bool redirectToLogin;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         if (!Session.CanAccess(SGA.Web.Services.PortalRole.Admin))
         {
@@ -369,10 +475,38 @@
             newUser.InstitutionId = Session.InstitutionId;
             userType = "operator";
         }
+
+        await LoadSummaryAsync();
+    }
+
+    private async Task LoadSummaryAsync()
+    {
+        using var busy = Ui.BeginBusy();
+
+        try
+        {
+            var institutionResponse = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
+            institutions = institutionResponse?.OrderBy(x => x.Name).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+        }
+        catch
+        {
+            institutions = new List<SGA.Web.Models.InstitutionResponse>();
+        }
+
+        try
+        {
+            var driverResponse = await ApiClient.GetDriversAsync(Session.IsMasterAdmin ? null : Session.InstitutionId, false, CancellationToken.None);
+            drivers = driverResponse?.OrderBy(driver => driver.FullName).ToList() ?? new List<SGA.Web.Models.DriverLookupResponse>();
+        }
+        catch
+        {
+            drivers = new List<SGA.Web.Models.DriverLookupResponse>();
+        }
     }
 
     private async Task CreateOrganizationDriverAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
 
         var institutionId = Session.IsMasterAdmin
@@ -418,10 +552,12 @@
                 CancellationToken.None);
 
             message = $"Driver registrado correctamente con ID {driverId}.";
+            Ui.ShowSuccess("Driver creado", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo crear el driver", ex.Message);
         }
     }
 
@@ -437,6 +573,7 @@
 
     private async Task CreateRoleAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (string.IsNullOrWhiteSpace(roleName))
         {
@@ -448,17 +585,20 @@
         {
             var id = await ApiClient.CreateRoleAsync(new SGA.Web.Models.CreateRoleRequest(roleName, roleDescription, createdBy), CancellationToken.None);
             message = $"Rol creado con ID {id}.";
+            Ui.ShowSuccess("Rol creado", message);
             roleName = string.Empty;
             roleDescription = string.Empty;
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo crear el rol", ex.Message);
         }
     }
 
     private async Task CreateInstitutionAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (string.IsNullOrWhiteSpace(institutionCode) || string.IsNullOrWhiteSpace(institutionName))
         {
@@ -476,6 +616,7 @@
                 CancellationToken.None);
 
             message = $"Institucion creada con ID {id}.";
+            Ui.ShowSuccess("Institucion creada", message);
             institutionCode = string.Empty;
             institutionName = string.Empty;
             await LoadInstitutionsAsync();
@@ -483,11 +624,13 @@
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo crear la institucion", ex.Message);
         }
     }
 
     private async Task CreatePermissionAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (string.IsNullOrWhiteSpace(permissionName))
         {
@@ -499,17 +642,20 @@
         {
             var id = await ApiClient.CreatePermissionAsync(new SGA.Web.Models.CreatePermissionRequest(permissionName, permissionDescription, createdBy), CancellationToken.None);
             message = $"Permiso creado con ID {id}.";
+            Ui.ShowSuccess("Permiso creado", message);
             permissionName = string.Empty;
             permissionDescription = string.Empty;
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo crear el permiso", ex.Message);
         }
     }
 
     private async Task RegisterUserAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
 
         if (!Session.IsMasterAdmin)
@@ -597,15 +743,18 @@
             }
 
             message = $"Usuario registrado correctamente con Person ID {personId}.";
+            Ui.ShowSuccess("Usuario registrado", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo registrar el usuario", ex.Message);
         }
     }
 
     private async Task LoadInstitutionsAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
 
         try
@@ -615,15 +764,20 @@
             message = institutions.Count == 0
                 ? "No hay instituciones registradas."
                 : $"Se cargaron {institutions.Count} instituciones.";
+
+            await LoadSummaryAsync();
+            Ui.ShowInfo("Instituciones", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudieron cargar las instituciones", ex.Message);
         }
     }
 
     private async Task LoadInstitutionByIdAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedInstitutionId <= 0)
         {
@@ -646,10 +800,12 @@
 
             SelectInstitution(institution);
             message = "Institucion cargada por ID.";
+            Ui.ShowSuccess("Institucion cargada", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo cargar la institucion", ex.Message);
         }
     }
 
@@ -663,6 +819,7 @@
 
     private async Task UpdateSelectedInstitutionAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedInstitutionId <= 0)
         {
@@ -682,53 +839,74 @@
                 CancellationToken.None);
 
             message = "Institucion actualizada correctamente.";
+            Ui.ShowSuccess("Institucion actualizada", message);
             await LoadInstitutionsAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo actualizar la institucion", ex.Message);
         }
     }
 
     private async Task DeleteSelectedInstitutionAsync()
+        => await DeleteInstitutionAsync(selectedInstitutionId);
+
+    private async Task DeleteInstitutionAsync(int institutionId)
     {
+        using var busy = Ui.BeginBusy();
         message = null;
-        if (selectedInstitutionId <= 0)
+        if (institutionId <= 0)
         {
             message = "Selecciona una institucion para eliminar.";
             return;
         }
 
+        if (!await ConfirmActionAsync("Eliminar esta institucion? Esta accion no se puede deshacer."))
+        {
+            return;
+        }
+
         try
         {
-            await ApiClient.DeleteInstitutionAsync(selectedInstitutionId, CancellationToken.None);
+            await ApiClient.DeleteInstitutionAsync(institutionId, CancellationToken.None);
             message = "Institucion eliminada correctamente.";
-            selectedInstitutionId = 0;
+                    Ui.ShowWarning("Institucion eliminada", message);
+            if (selectedInstitutionId == institutionId)
+            {
+                selectedInstitutionId = 0;
+            }
+
             await LoadInstitutionsAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo eliminar la institucion", ex.Message);
         }
     }
 
     private async Task LoadBusesAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         try
         {
             var response = await ApiClient.GetBusesAsync(CancellationToken.None);
             buses = response?.OrderBy(b => b.InstitutionId).ThenBy(b => b.Id).ToList() ?? new List<SGA.Web.Models.BusResponse>();
             message = buses.Count == 0 ? "No hay buses registrados." : $"Se cargaron {buses.Count} buses.";
+            Ui.ShowInfo("Buses", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudieron cargar los buses", ex.Message);
         }
     }
 
     private async Task LoadBusByIdAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedBusId <= 0)
         {
@@ -749,10 +927,12 @@
 
             SelectBus(bus);
             message = "Bus cargado por ID.";
+            Ui.ShowSuccess("Bus cargado", message);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo cargar el bus", ex.Message);
         }
     }
 
@@ -768,6 +948,7 @@
 
     private async Task UpdateSelectedBusAsync()
     {
+        using var busy = Ui.BeginBusy();
         message = null;
         if (selectedBusId <= 0)
         {
@@ -789,35 +970,55 @@
                 CancellationToken.None);
 
             message = "Bus actualizado correctamente.";
+            Ui.ShowSuccess("Bus actualizado", message);
             await LoadBusesAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo actualizar el bus", ex.Message);
         }
     }
 
     private async Task DeleteSelectedBusAsync()
+        => await DeleteBusAsync(selectedBusId);
+
+    private async Task DeleteBusAsync(int busId)
     {
+        using var busy = Ui.BeginBusy();
         message = null;
-        if (selectedBusId <= 0)
+        if (busId <= 0)
         {
             message = "Selecciona un bus para eliminar.";
             return;
         }
 
+        if (!await ConfirmActionAsync("Eliminar este bus? Esta accion no se puede deshacer."))
+        {
+            return;
+        }
+
         try
         {
-            await ApiClient.DeleteBusAsync(selectedBusId, CancellationToken.None);
+            await ApiClient.DeleteBusAsync(busId, CancellationToken.None);
             message = "Bus eliminado correctamente.";
-            selectedBusId = 0;
+                    Ui.ShowWarning("Bus eliminado", message);
+            if (selectedBusId == busId)
+            {
+                selectedBusId = 0;
+            }
+
             await LoadBusesAsync();
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            Ui.ShowError("No se pudo eliminar el bus", ex.Message);
         }
     }
+
+    private Task<bool> ConfirmActionAsync(string message)
+        => JS.InvokeAsync<bool>("sgaUi.confirmAction", message).AsTask();
 
     private sealed class NewUserForm
     {

@@ -57,6 +57,9 @@ public sealed record CreateRoleRequest(string Name, string? Description, string 
 public sealed record CreatePermissionRequest(string Name, string? Description, string CreatedBy);
 
 public sealed record PortalLoginRequest(string Email);
+public sealed record OtpRequest(string Email);
+public sealed record OtpRequestResponse(string Message, string? DevelopmentCode);
+public sealed record OtpVerifyRequest(string Email, string Code);
 public sealed record MasterOtpRequest(string Email);
 public sealed record MasterOtpRequestResponse(string Message, string? DevelopmentCode);
 public sealed record MasterOtpVerifyRequest(string Email, string Code);
