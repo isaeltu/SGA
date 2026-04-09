@@ -397,54 +397,55 @@
             <button class="sga-btn" @onclick="CreateTripAsync">Registrar viaje</button>
         </div>
 
-        <div class="sga-inline-actions operator-actions" style="margin-top:1rem;">
-            <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
-            <input @bind="modifiedBy" class="sga-input" placeholder="Usuario operador" />
-            <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
-            <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
-            <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
-        </div>
-
-        @if (trips.Count > 0)
-        {
-            <div class="sga-grid-cards" style="margin-top:1rem;">
-                @foreach (var trip in trips)
-                {
-                    <article class="sga-card sga-trip-card" @onclick="() => selectedTripId = trip.Id">
-                        <div class="sga-card-header">
-                            <div>
-                                <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
-                                <p class="sga-panel-note">Viaje #@trip.Id | Bus @trip.BusId | Driver @trip.DriverId</p>
-                            </div>
-                            <span class="sga-status-pill">@trip.Status</span>
-                        </div>
-
-                        <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
-                        <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
-                        <p>Disponibles: @trip.AvailableSeats</p>
-
-                        <div class="sga-row-actions">
-                            <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => selectedTripId = trip.Id" title="Seleccionar viaje">
-                                <img src="icons/nav/eye.svg" alt="" />
-                            </button>
-                            <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="StartTripAsync" title="Iniciar viaje">
-                                <img src="icons/nav/navigation.svg" alt="" />
-                            </button>
-                        </div>
-                    </article>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="sga-empty" style="margin-top:1rem;">Aun no hay viajes cargados para esta institucion.</div>
-        }
-    </article>
+    <div class="sga-inline-actions operator-actions">
+        <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
+        <input @bind="modifiedBy" class="sga-input" placeholder="Usuario operador" />
+        <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
+        <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
+        <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <p class="sga-alert">@message</p>
     }
+
+ HEAD
+    <div class="sga-grid-cards">
+        @foreach (var trip in trips)
+        {
+            <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
+                <h3>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName)</h3>
+                <p> Driver: @trip.DriverId | Bus: @trip.BusId</p>
+                <p>Estado: @trip.Status</p>
+                <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                <p>Disponibles: @trip.AvailableSeats</p>
+            </article>
+        }
+    </div>
+=======
+    @if (trips.Count > 0)
+    {
+        <div class="sga-grid-cards">
+            @foreach (var trip in trips)
+            {
+                <article class="sga-card" @onclick="() => selectedTripId = trip.Id">
+                    <h3>@(string.IsNullOrWhiteSpace(trip.RouteName) ? $"Ruta ID {trip.RouteId}" : trip.RouteName)</h3>
+                    <p>Ruta: @(string.IsNullOrWhiteSpace(trip.RouteName) ? $"ID {trip.RouteId}" : trip.RouteName) | Driver: @trip.DriverId | Bus: @trip.BusId</p>
+                    <p>Estado: @trip.Status</p>
+                    <p>Salida: @trip.ScheduledDepartureTime.ToLocalTime()</p>
+                    <p>Llegada: @trip.ScheduledArrivalTime.ToLocalTime()</p>
+                    <p>Disponibles: @trip.AvailableSeats</p>
+                </article>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="sga-empty">Aun no hay viajes cargados para esta institucion.</div>
+    }
+>>>>>>> 4c1839fa42a860a946a077e1c261153b5f74b0c4
 </section>
 
 @code {
