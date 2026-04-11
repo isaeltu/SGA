@@ -1,0 +1,41 @@
+@if (IsOpen)
+{
+    <div class="sga-ui-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sga-ui-form-modal-title">
+        <div class="sga-ui-modal-card">
+            <h3 id="sga-ui-form-modal-title">@Title</h3>
+            <div class="sga-ui-modal-body">
+                @ChildContent
+            </div>
+            <div class="sga-ui-modal-actions">
+                <button type="button" class="sga-btn ghost" @onclick="OnCancel">@CancelText</button>
+                <button type="button" class="sga-btn" disabled="@DisableSave" @onclick="OnSave">@SaveText</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Formulario";
+
+    [Parameter]
+    public string SaveText { get; set; } = "Guardar";
+
+    [Parameter]
+    public string CancelText { get; set; } = "Cancelar";
+
+    [Parameter]
+    public bool DisableSave { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+}

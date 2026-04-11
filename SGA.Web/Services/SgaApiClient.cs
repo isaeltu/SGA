@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using SGA.Web.Models;
 
 namespace SGA.Web.Services;
@@ -247,6 +248,40 @@ public sealed class SgaApiClient
         return await response.Content.ReadFromJsonAsync<int>(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyCollection<AdminErrorLogResponse>?> GetAdminLogsAsync(
+        DateTimeOffset? startDate,
+        DateTimeOffset? endDate,
+        string? user,
+        string? errorCode,
+        CancellationToken cancellationToken)
+    {
+        var query = new List<string>();
+        if (startDate.HasValue)
+        {
+            query.Add($"fecha_inicio={Uri.EscapeDataString(startDate.Value.ToString("O"))}");
+        }
+
+        if (endDate.HasValue)
+        {
+            query.Add($"fecha_fin={Uri.EscapeDataString(endDate.Value.ToString("O"))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(user))
+        {
+            query.Add($"usuario_id={Uri.EscapeDataString(user.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(errorCode))
+        {
+            query.Add($"tipo_error={Uri.EscapeDataString(errorCode.Trim())}");
+        }
+
+        var suffix = query.Count > 0 ? $"?{string.Join("&", query)}" : string.Empty;
+        var response = await _httpClient.GetAsync($"admin/logs{suffix}", cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessLoggedAsync(response, cancellationToken).ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<IReadOnlyCollection<AdminErrorLogResponse>>(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task EnsureSuccessLoggedAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)
@@ -256,6 +291,37 @@ public sealed class SgaApiClient
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogError("API Error {StatusCode}: {Content}", (int)response.StatusCode, body);
-        throw new InvalidOperationException($"API error {(int)response.StatusCode}: {body}");
+
+        ApiErrorResponse? apiError = null;
+        try
+        {
+            apiError = JsonSerializer.Deserialize<ApiErrorResponse>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "No se pudo parsear el error estandarizado de API");
+        }
+
+        var message = apiError?.Message;
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            message = $"API error {(int)response.StatusCode}: {body}";
+        }
+
+        throw new ApiClientException(
+            (int)response.StatusCode,
+            message,
+            apiError?.ErrorId,
+            apiError?.Code,
+            apiError?.Errors);
     }
+
+    private sealed record ApiErrorResponse(
+        string ErrorId,
+        int Status,
+        string Code,
+        string Message,
+        string Path,
+        DateTimeOffset Timestamp,
+        IDictionary<string, string[]>? Errors);
 }

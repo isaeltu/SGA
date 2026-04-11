@@ -21,11 +21,26 @@ namespace SGA.Persistence
     {
         public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+            var provider = configuration["Persistence:Provider"]?.Trim();
+            if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
+            {
+                var dbName = configuration["Persistence:DatabaseName"];
+                if (string.IsNullOrWhiteSpace(dbName))
+                {
+                    dbName = "SgaDevDb";
+                }
 
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseInMemoryDatabase(dbName));
+            }
+            else
+            {
+                var connectionString = configuration.GetConnectionString("DefaultConnection")
+                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
+                services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(connectionString));
+            }
 
             services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 

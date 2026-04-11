@@ -1,0 +1,166 @@
+@typeparam TItem
+@implements IDisposable
+
+<section class="sga-list-shell">
+    @if (ShowSearch)
+    {
+        <div class="sga-list-toolbar">
+            <input
+                class="sga-input"
+                type="search"
+                placeholder="@SearchPlaceholder"
+                value="@searchInput"
+                @oninput="OnSearchInput"
+                aria-label="Buscar" />
+        </div>
+    }
+
+    @if (CurrentPageItems.Count == 0)
+    {
+        @if (EmptyTemplate is not null)
+        {
+            @EmptyTemplate
+        }
+        else
+        {
+            <div class="sga-empty">Sin resultados para los filtros actuales.</div>
+        }
+    }
+    else
+    {
+        <table class="sga-table">
+            <thead>
+                <tr>
+                    @HeaderTemplate
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in CurrentPageItems)
+                {
+                    <tr>
+                        @RowTemplate(item)
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (TotalPages > 1)
+        {
+            <div class="sga-list-pagination">
+                <button type="button" class="sga-btn ghost" disabled="@(currentPage == 1)" @onclick="PreviousPage">Anterior</button>
+                <span>Pagina @currentPage de @TotalPages</span>
+                <button type="button" class="sga-btn ghost" disabled="@(currentPage >= TotalPages)" @onclick="NextPage">Siguiente</button>
+            </div>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyCollection<TItem> Items { get; set; } = Array.Empty<TItem>();
+
+    [Parameter, EditorRequired]
+    public RenderFragment HeaderTemplate { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> RowTemplate { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? EmptyTemplate { get; set; }
+
+    [Parameter]
+    public Func<TItem, string>? SearchSelector { get; set; }
+
+    [Parameter]
+    public string SearchPlaceholder { get; set; } = "Buscar";
+
+    [Parameter]
+    public int PageSize { get; set; } = 8;
+
+    [Parameter]
+    public bool ShowSearch { get; set; } = true;
+
+    private string searchInput = string.Empty;
+    private string searchTerm = string.Empty;
+    private int currentPage = 1;
+    private CancellationTokenSource? searchDebounceCts;
+
+    private IReadOnlyList<TItem> FilteredItems
+    {
+        get
+        {
+            if (SearchSelector is null || string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Items.ToList();
+            }
+
+            return Items
+                .Where(item => (SearchSelector(item) ?? string.Empty)
+                    .Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private IReadOnlyList<TItem> CurrentPageItems
+    {
+        get
+        {
+            var filtered = FilteredItems;
+            currentPage = Math.Max(1, Math.Min(currentPage, TotalPages));
+            return filtered
+                .Skip((currentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToList();
+        }
+    }
+
+    private int TotalPages
+    {
+        get
+        {
+            var count = FilteredItems.Count;
+            return Math.Max(1, (int)Math.Ceiling(count / (double)Math.Max(1, PageSize)));
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < TotalPages)
+        {
+            currentPage++;
+        }
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs args)
+    {
+        searchInput = args.Value?.ToString() ?? string.Empty;
+        searchDebounceCts?.Cancel();
+        searchDebounceCts?.Dispose();
+        searchDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(300, searchDebounceCts.Token);
+            searchTerm = searchInput;
+            currentPage = 1;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        searchDebounceCts?.Cancel();
+        searchDebounceCts?.Dispose();
+    }
+}

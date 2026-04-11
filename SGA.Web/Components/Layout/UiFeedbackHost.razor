@@ -20,7 +20,7 @@
     <div class="sga-loading-overlay" role="status" aria-live="polite" aria-label="Cargando">
         <div class="sga-loading-card">
             <div class="sga-spinner"></div>
-            <strong>Procesando solicitud</strong>
+            <strong>@Ui.BusyMessage</strong>
             <span>Espere un momento.</span>
         </div>
     </div>
@@ -47,9 +47,9 @@
         => kind switch
         {
             SGA.Web.Services.UiFeedbackService.ToastKind.Success => "✓",
-            SGA.Web.Services.UiFeedbackService.ToastKind.Warning => "!",
-            SGA.Web.Services.UiFeedbackService.ToastKind.Error => "×",
-            _ => "i"
+            SGA.Web.Services.UiFeedbackService.ToastKind.Warning => "⚠",
+            SGA.Web.Services.UiFeedbackService.ToastKind.Error => "✗",
+            _ => "ℹ"
         };
 
     public void Dispose()

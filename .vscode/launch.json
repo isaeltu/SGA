@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug SGA API",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/SGA.Api/bin/Debug/net8.0/SGA.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/SGA.Api",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": "Debug SGA Web",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/SGA.Web/bin/Debug/net8.0/SGA.Web.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/SGA.Web",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  ]
+}

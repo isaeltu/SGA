@@ -1,4 +1,6 @@
 window.sgaUi = {
+  _activityHandler: null,
+  _dotNetRef: null,
   toggleSidebar: function () {
     const sidebar = document.getElementById('sga-sidebar');
     if (!sidebar) return;
@@ -6,6 +8,44 @@ window.sgaUi = {
   },
   confirmAction: function (message) {
     return window.confirm(message);
+  },
+  sessionSet: function (key, value) {
+    window.sessionStorage.setItem(key, value);
+  },
+  sessionGet: function (key) {
+    return window.sessionStorage.getItem(key);
+  },
+  sessionRemove: function (key) {
+    window.sessionStorage.removeItem(key);
+  },
+  registerActivityTracker: function (dotNetRef) {
+    this.unregisterActivityTracker();
+
+    this._dotNetRef = dotNetRef;
+    this._activityHandler = () => {
+      if (this._dotNetRef) {
+        this._dotNetRef.invokeMethodAsync('NotifyActivity');
+      }
+    };
+
+    const opts = { passive: true };
+    window.addEventListener('click', this._activityHandler, opts);
+    window.addEventListener('keydown', this._activityHandler, opts);
+    window.addEventListener('scroll', this._activityHandler, opts);
+    window.addEventListener('touchstart', this._activityHandler, opts);
+  },
+  unregisterActivityTracker: function () {
+    if (!this._activityHandler) {
+      return;
+    }
+
+    window.removeEventListener('click', this._activityHandler);
+    window.removeEventListener('keydown', this._activityHandler);
+    window.removeEventListener('scroll', this._activityHandler);
+    window.removeEventListener('touchstart', this._activityHandler);
+
+    this._activityHandler = null;
+    this._dotNetRef = null;
   },
   downloadTextFile: function (filename, content) {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });

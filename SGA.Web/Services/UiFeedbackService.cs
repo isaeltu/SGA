@@ -5,6 +5,7 @@ public sealed class UiFeedbackService
     private readonly object syncRoot = new();
     private readonly List<ToastMessage> toasts = new();
     private int busyCount;
+    private string busyMessage = "Procesando...";
 
     public event Action? Changed;
 
@@ -30,11 +31,23 @@ public sealed class UiFeedbackService
         }
     }
 
-    public IDisposable BeginBusy()
+    public string BusyMessage
+    {
+        get
+        {
+            lock (syncRoot)
+            {
+                return busyMessage;
+            }
+        }
+    }
+
+    public IDisposable BeginBusy(string message = "Procesando...")
     {
         lock (syncRoot)
         {
             busyCount++;
+            busyMessage = string.IsNullOrWhiteSpace(message) ? "Procesando..." : message;
         }
 
         NotifyChanged();
@@ -88,6 +101,11 @@ public sealed class UiFeedbackService
             if (busyCount > 0)
             {
                 busyCount--;
+            }
+
+            if (busyCount == 0)
+            {
+                busyMessage = "Procesando...";
             }
         }
 
