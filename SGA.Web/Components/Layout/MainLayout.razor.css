@@ -146,6 +146,43 @@
     border-radius: 10px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
     padding: 0.75rem;
+    display: grid;
+    gap: 0.6rem;
+}
+
+.sga-session-countdown {
+    display: grid;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: var(--sga-danger);
+}
+
+.sga-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1250;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+.sga-modal-card {
+    width: min(460px, 100%);
+    background: #fff;
+    border: 1px solid var(--sga-border);
+    border-radius: 12px;
+    padding: 1.1rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    display: grid;
+    gap: 0.7rem;
+}
+
+.sga-modal-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 .sga-content {
@@ -208,6 +245,14 @@
 
     .sga-content {
         padding: 1rem;
+    }
+
+    .sga-modal-actions {
+        justify-content: stretch;
+    }
+
+    .sga-modal-actions > * {
+        flex: 1 1 auto;
     }
 }
 

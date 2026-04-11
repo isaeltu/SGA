@@ -125,3 +125,17 @@ public sealed record TripResponse(
     DateTime? ActualDepartureTime,
     DateTime? ActualArrivalTime,
     int AvailableSeats);
+
+public sealed record AdminErrorLogResponse(
+    string ErrorId,
+    DateTimeOffset Timestamp,
+    int Status,
+    string ErrorCode,
+    string Message,
+    string? StackTrace,
+    string Path,
+    string Method,
+    string? User,
+    string? Ip,
+    string TraceIdentifier,
+    IDictionary<string, string[]>? ValidationErrors);

@@ -1,4 +1,6 @@
 using SGA.Application;
+using SGA.Api.Middleware;
+using SGA.Api.Services;
 using SGA.Persistence;
 namespace SGA.Api
 {
@@ -15,6 +17,7 @@ namespace SGA.Api
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddMemoryCache();
+            builder.Services.AddSingleton<IErrorLogWriter, FileErrorLogWriter>();
 
             builder.Services.AddApplicationServices(builder.Configuration);
             builder.Services.AddPersistence(builder.Configuration);
@@ -29,6 +32,7 @@ namespace SGA.Api
             }
 
             app.UseHttpsRedirection();
+            app.UseMiddleware<ErrorHandlingMiddleware>();
 
             app.UseAuthorization();
 

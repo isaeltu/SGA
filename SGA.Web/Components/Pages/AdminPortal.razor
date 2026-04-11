@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject SGA.Web.Services.UiFeedbackService Ui
+@inject SGA.Web.Services.UiErrorHandler ErrorHandler
 
 <section class="sga-section">
     <div>
@@ -84,25 +85,9 @@
 
     <div class="sga-two-col">
         <article class="sga-card" id="section-institutions">
-            <h3>Crear institucion</h3>
-            <div class="sga-form-full single-col">
-                <div class="sga-field">
-                    <label>Codigo</label>
-                    <input @bind="institutionCode" class="sga-input" />
-                </div>
-
-                <div class="sga-field">
-                    <label>Nombre</label>
-                    <input @bind="institutionName" class="sga-input" />
-                </div>
-
-                <div class="sga-field">
-                    <label>Creado por</label>
-                    <input @bind="createdBy" class="sga-input" />
-                </div>
-
-                <button class="sga-btn" @onclick="CreateInstitutionAsync">Crear institucion</button>
-            </div>
+            <h3>Gestion de instituciones</h3>
+            <p>Usa el boton + Crear para abrir el formulario validado en modal y evitar sobrecarga visual.</p>
+            <button class="sga-btn" @onclick="OpenCreateInstitutionModal">+ Crear institucion</button>
         </article>
 
         <article class="sga-card" id="section-roles">
@@ -311,77 +296,104 @@
     </article>
 
     <article class="sga-card">
-        <h3>Instituciones registradas</h3>
-        <p>Puedes cargar el listado completo para validar IDs y nombres antes de crear usuarios.</p>
-        <div class="sga-inline-actions operator-actions">
-            <button class="sga-btn alt" @onclick="LoadInstitutionsAsync">Obtener todas las instituciones</button>
-            <input class="sga-input" type="number" @bind="selectedInstitutionId" placeholder="Institution ID" />
-            <button class="sga-btn alt" @onclick="LoadInstitutionByIdAsync">Buscar por ID</button>
-            <button class="sga-btn danger" @onclick="DeleteSelectedInstitutionAsync">Eliminar seleccionada</button>
+        <div class="sga-card-header">
+            <div>
+                <h3>Instituciones registradas</h3>
+                <p class="sga-panel-note">Vista modular con busqueda, paginacion y acciones CRUD.</p>
+            </div>
+            <div class="sga-row-actions">
+                <button class="sga-btn alt" @onclick="LoadInstitutionsAsync">Recargar</button>
+                <button class="sga-btn" @onclick="OpenCreateInstitutionModal">+ Crear</button>
+            </div>
         </div>
 
-        @if (institutions.Count > 0)
-        {
-            <table class="sga-table" style="margin-top:1rem;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Codigo</th>
-                        <th>Nombre</th>
-                        <th>Activa</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var institution in institutions)
-                    {
-                        <tr @onclick="() => SelectInstitution(institution)">
-                            <td>@institution.Id</td>
-                            <td>@institution.Code</td>
-                            <td>@institution.Name</td>
-                            <td>@(institution.IsActive ? "Si" : "No")</td>
-                            <td>
-                                <div class="sga-row-actions">
-                                    <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => SelectInstitution(institution)" title="Ver institucion">
-                                        <img src="icons/nav/eye.svg" alt="" />
-                                    </button>
-                                    <button type="button" class="sga-icon-btn alt" @onclick:stopPropagation="true" @onclick="() => SelectInstitution(institution)" title="Editar institucion">
-                                        <img src="icons/nav/pencil.svg" alt="" />
-                                    </button>
-                                    <button type="button" class="sga-icon-btn danger" @onclick:stopPropagation="true" @onclick="() => DeleteInstitutionAsync(institution.Id)" title="Eliminar institucion">
-                                        <img src="icons/nav/trash.svg" alt="" />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <div class="sga-empty" style="margin-top:1rem;">No hay instituciones cargadas. Usa el boton de consulta o crea una nueva.</div>
-        }
-
-        @if (selectedInstitutionId > 0)
-        {
-            <div class="sga-form-full single-col" style="margin-top:1rem;">
-                <div class="sga-field">
-                    <label>Codigo (edicion)</label>
-                    <input class="sga-input" @bind="institutionEditCode" />
-                </div>
-                <div class="sga-field">
-                    <label>Nombre (edicion)</label>
-                    <input class="sga-input" @bind="institutionEditName" />
-                </div>
-                <div class="sga-field">
-                    <label>Activa</label>
-                    <input class="sga-input" type="checkbox" @bind="institutionEditIsActive" />
-                </div>
-                <button class="sga-btn alt" @onclick="UpdateSelectedInstitutionAsync">Actualizar institucion</button>
-            </div>
-        }
+        <ListComponent
+            Items="institutions"
+            SearchSelector="SearchInstitution"
+            SearchPlaceholder="Buscar por nombre o codigo"
+            PageSize="8">
+            <HeaderTemplate>
+                <th>ID</th>
+                <th>Codigo</th>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </HeaderTemplate>
+            <RowTemplate Context="institution">
+                <td>@institution.Id</td>
+                <td>@institution.Code</td>
+                <td>@institution.Name</td>
+                <td>@(institution.IsActive ? "Activa" : "Inactiva")</td>
+                <td>
+                    <div class="sga-row-actions">
+                        <button type="button" class="sga-icon-btn alt" @onclick="() => OpenEditInstitutionModal(institution)" title="Editar institucion">
+                            <img src="icons/nav/pencil.svg" alt="" />
+                        </button>
+                        <button type="button" class="sga-icon-btn danger" @onclick="() => OpenDeleteInstitutionModal(institution)" title="Eliminar institucion">
+                            <img src="icons/nav/trash.svg" alt="" />
+                        </button>
+                    </div>
+                </td>
+            </RowTemplate>
+            <EmptyTemplate>
+                <div class="sga-empty">No hay instituciones disponibles.</div>
+            </EmptyTemplate>
+        </ListComponent>
     </article>
+
+    <FormModal
+        IsOpen="showCreateInstitutionModal"
+        Title="Crear institucion"
+        SaveText="Guardar"
+        DisableSave="@(!CanCreateInstitution)"
+        OnSave="CreateInstitutionAsync"
+        OnCancel="CloseCreateInstitutionModal">
+        <div class="sga-field">
+            <label>Codigo</label>
+            <input class="@GetInputCssClass(institutionCodeError)" @bind="institutionCode" @bind:event="oninput" @bind:after="OnInstitutionCodeInput" />
+            <small class="@GetStatusCssClass(institutionCodeError)">@GetStatusText(institutionCodeError, "Codigo valido")</small>
+        </div>
+        <div class="sga-field">
+            <label>Nombre</label>
+            <input class="@GetInputCssClass(institutionNameError)" @bind="institutionName" @bind:event="oninput" @bind:after="OnInstitutionNameInput" />
+            <small class="@GetStatusCssClass(institutionNameError)">@GetStatusText(institutionNameError, "Nombre valido")</small>
+        </div>
+        <div class="sga-field">
+            <label>Creado por</label>
+            <input class="sga-input" @bind="createdBy" />
+        </div>
+    </FormModal>
+
+    <FormModal
+        IsOpen="showEditInstitutionModal"
+        Title="Editar institucion"
+        SaveText="Guardar cambios"
+        DisableSave="@(!CanUpdateInstitution)"
+        OnSave="UpdateSelectedInstitutionAsync"
+        OnCancel="CloseEditInstitutionModal">
+        <div class="sga-field">
+            <label>Codigo</label>
+            <input class="@GetInputCssClass(institutionEditCodeError)" @bind="institutionEditCode" @bind:event="oninput" @bind:after="OnInstitutionEditCodeInput" />
+            <small class="@GetStatusCssClass(institutionEditCodeError)">@GetStatusText(institutionEditCodeError, "Codigo valido")</small>
+        </div>
+        <div class="sga-field">
+            <label>Nombre</label>
+            <input class="@GetInputCssClass(institutionEditNameError)" @bind="institutionEditName" @bind:event="oninput" @bind:after="OnInstitutionEditNameInput" />
+            <small class="@GetStatusCssClass(institutionEditNameError)">@GetStatusText(institutionEditNameError, "Nombre valido")</small>
+        </div>
+        <div class="sga-field">
+            <label>
+                <input class="sga-input" type="checkbox" @bind="institutionEditIsActive" />
+                Activa
+            </label>
+        </div>
+    </FormModal>
+
+    <ConfirmDelete
+        IsOpen="showDeleteInstitutionModal"
+        Message="@deleteInstitutionMessage"
+        OnCancel="CloseDeleteInstitutionModal"
+        OnConfirm="ConfirmDeleteInstitutionAsync" />
 
     <article class="sga-card">
         <h3>Buses registrados</h3>
@@ -472,6 +484,97 @@
         <p class="sga-alert">@message</p>
     }
 
+    <article class="sga-card" id="section-logs">
+        <div class="sga-card-header">
+            <div>
+                <h3>Logs y errores</h3>
+                <p class="sga-panel-note">Monitorea fallas del sistema por fecha, usuario y tipo.</p>
+            </div>
+            <button type="button" class="sga-btn alt" @onclick="LoadAdminLogsAsync">Consultar logs</button>
+        </div>
+
+        <div class="sga-form-full">
+            <div class="sga-field">
+                <label>Fecha inicio</label>
+                <input class="sga-input" type="date" @bind="logsStartDate" />
+            </div>
+            <div class="sga-field">
+                <label>Fecha fin</label>
+                <input class="sga-input" type="date" @bind="logsEndDate" />
+            </div>
+            <div class="sga-field">
+                <label>Usuario</label>
+                <input class="sga-input" @bind="logsUserFilter" placeholder="usuario@correo.com" />
+            </div>
+            <div class="sga-field">
+                <label>Tipo error</label>
+                <select class="sga-input" @bind="logsErrorTypeFilter">
+                    <option value="">Todos</option>
+                    <option value="validation_error">validation_error</option>
+                    <option value="unauthorized">unauthorized</option>
+                    <option value="forbidden">forbidden</option>
+                    <option value="not_found">not_found</option>
+                    <option value="timeout">timeout</option>
+                    <option value="server_error">server_error</option>
+                </select>
+            </div>
+        </div>
+
+        <ListComponent
+            Items="adminLogs"
+            SearchSelector="SearchLog"
+            SearchPlaceholder="Buscar por mensaje, endpoint o ID"
+            PageSize="6">
+            <HeaderTemplate>
+                <th>Fecha</th>
+                <th>Codigo</th>
+                <th>Mensaje</th>
+                <th>Usuario</th>
+                <th>Endpoint</th>
+                <th>Trace</th>
+                <th>Accion</th>
+            </HeaderTemplate>
+            <RowTemplate Context="entry">
+                <td>@entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@entry.ErrorCode (@entry.Status)</td>
+                <td>@entry.Message</td>
+                <td>@(string.IsNullOrWhiteSpace(entry.User) ? "anonimo" : entry.User)</td>
+                <td>@entry.Method @entry.Path</td>
+                <td>@entry.ErrorId</td>
+                <td>
+                    <button type="button" class="sga-btn ghost" @onclick="() => OpenLogDetail(entry)">Ver detalle</button>
+                </td>
+            </RowTemplate>
+            <EmptyTemplate>
+                <div class="sga-empty">No hay logs para los filtros actuales.</div>
+            </EmptyTemplate>
+        </ListComponent>
+    </article>
+
+    <FormModal
+        IsOpen="showLogDetailModal"
+        Title="Detalle de error"
+        SaveText="Cerrar"
+        CancelText="Cerrar"
+        OnSave="CloseLogDetail"
+        OnCancel="CloseLogDetail">
+        @if (selectedLogEntry is not null)
+        {
+            <div class="sga-field"><label>ID</label><div>@selectedLogEntry.ErrorId</div></div>
+            <div class="sga-field"><label>Fecha</label><div>@selectedLogEntry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</div></div>
+            <div class="sga-field"><label>Codigo</label><div>@selectedLogEntry.ErrorCode (@selectedLogEntry.Status)</div></div>
+            <div class="sga-field"><label>Endpoint</label><div>@selectedLogEntry.Method @selectedLogEntry.Path</div></div>
+            <div class="sga-field"><label>Mensaje</label><div>@selectedLogEntry.Message</div></div>
+            @if (!string.IsNullOrWhiteSpace(selectedLogEntry.StackTrace))
+            {
+                <div class="sga-field">
+                    <label>Stack trace</label>
+                    <textarea class="sga-input" rows="8" readonly>@selectedLogEntry.StackTrace</textarea>
+                </div>
+            }
+        }
+    </FormModal>
+
     <article class="sga-card">
         <h3>Permisos recomendados por rol</h3>
         <div class="permission-grid">
@@ -518,6 +621,8 @@
 
     private string institutionCode = string.Empty;
     private string institutionName = string.Empty;
+    private string? institutionCodeError;
+    private string? institutionNameError;
     private string roleName = string.Empty;
     private string? roleDescription;
     private string permissionName = string.Empty;
@@ -532,6 +637,8 @@
     private int selectedInstitutionId;
     private string institutionEditCode = string.Empty;
     private string institutionEditName = string.Empty;
+    private string? institutionEditCodeError;
+    private string? institutionEditNameError;
     private bool institutionEditIsActive = true;
     private int selectedBusId;
     private int busEditInstitutionId;
@@ -541,6 +648,21 @@
     private int busEditCapacity = 40;
     private string? message;
     private bool redirectToLogin;
+    private bool showCreateInstitutionModal;
+    private bool showEditInstitutionModal;
+    private bool showDeleteInstitutionModal;
+    private int pendingDeleteInstitutionId;
+    private string deleteInstitutionMessage = "";
+    private DateTime? logsStartDate;
+    private DateTime? logsEndDate;
+    private string logsUserFilter = string.Empty;
+    private string logsErrorTypeFilter = string.Empty;
+    private List<SGA.Web.Models.AdminErrorLogResponse> adminLogs = new();
+    private bool showLogDetailModal;
+    private SGA.Web.Models.AdminErrorLogResponse? selectedLogEntry;
+
+    private bool CanCreateInstitution => string.IsNullOrWhiteSpace(institutionCodeError) && string.IsNullOrWhiteSpace(institutionNameError);
+    private bool CanUpdateInstitution => selectedInstitutionId > 0 && string.IsNullOrWhiteSpace(institutionEditCodeError) && string.IsNullOrWhiteSpace(institutionEditNameError);
 
     protected override async Task OnInitializedAsync()
     {
@@ -556,8 +678,134 @@
             userType = "operator";
         }
 
+        ValidateInstitutionCode();
+        ValidateInstitutionName();
+
         await LoadSummaryAsync();
     }
+
+    private static string SearchInstitution(SGA.Web.Models.InstitutionResponse item)
+        => $"{item.Id} {item.Code} {item.Name}";
+
+    private static string SearchLog(SGA.Web.Models.AdminErrorLogResponse entry)
+        => $"{entry.ErrorId} {entry.ErrorCode} {entry.Message} {entry.Path} {entry.Method} {entry.User}";
+
+    private void OpenCreateInstitutionModal()
+    {
+        ValidateInstitutionCode();
+        ValidateInstitutionName();
+        showCreateInstitutionModal = true;
+    }
+
+    private Task CloseCreateInstitutionModal()
+    {
+        showCreateInstitutionModal = false;
+        return Task.CompletedTask;
+    }
+
+    private void OpenEditInstitutionModal(SGA.Web.Models.InstitutionResponse institution)
+    {
+        SelectInstitution(institution);
+        ValidateInstitutionEditCode();
+        ValidateInstitutionEditName();
+        showEditInstitutionModal = true;
+    }
+
+    private Task CloseEditInstitutionModal()
+    {
+        showEditInstitutionModal = false;
+        return Task.CompletedTask;
+    }
+
+    private void OpenDeleteInstitutionModal(SGA.Web.Models.InstitutionResponse institution)
+    {
+        pendingDeleteInstitutionId = institution.Id;
+        deleteInstitutionMessage = $"Eliminar institucion '{institution.Name}'? Esta accion no se puede deshacer.";
+        showDeleteInstitutionModal = true;
+    }
+
+    private Task CloseDeleteInstitutionModal()
+    {
+        showDeleteInstitutionModal = false;
+        pendingDeleteInstitutionId = 0;
+        return Task.CompletedTask;
+    }
+
+    private async Task ConfirmDeleteInstitutionAsync()
+    {
+        var id = pendingDeleteInstitutionId;
+        await CloseDeleteInstitutionModal();
+        await DeleteInstitutionAsync(id);
+    }
+
+    private void OnInstitutionCodeInput()
+    {
+        ValidateInstitutionCode();
+    }
+
+    private void OnInstitutionNameInput()
+    {
+        ValidateInstitutionName();
+    }
+
+    private void OnInstitutionEditCodeInput()
+    {
+        ValidateInstitutionEditCode();
+    }
+
+    private void OnInstitutionEditNameInput()
+    {
+        ValidateInstitutionEditName();
+    }
+
+    private void ValidateInstitutionCode()
+    {
+        var code = institutionCode.Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            institutionCodeError = "Este campo es obligatorio.";
+            return;
+        }
+
+        institutionCodeError = code.Length < 3 ? "Minimo 3 caracteres." : null;
+    }
+
+    private void ValidateInstitutionName()
+    {
+        var name = institutionName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            institutionNameError = "Este campo es obligatorio.";
+            return;
+        }
+
+        institutionNameError = name.Length < 4 ? "Minimo 4 caracteres." : null;
+    }
+
+    private void ValidateInstitutionEditCode()
+    {
+        var code = institutionEditCode.Trim();
+        institutionEditCodeError = string.IsNullOrWhiteSpace(code)
+            ? "Este campo es obligatorio."
+            : (code.Length < 3 ? "Minimo 3 caracteres." : null);
+    }
+
+    private void ValidateInstitutionEditName()
+    {
+        var name = institutionEditName.Trim();
+        institutionEditNameError = string.IsNullOrWhiteSpace(name)
+            ? "Este campo es obligatorio."
+            : (name.Length < 4 ? "Minimo 4 caracteres." : null);
+    }
+
+    private static string GetInputCssClass(string? error)
+        => string.IsNullOrWhiteSpace(error) ? "sga-input sga-input-valid" : "sga-input sga-input-invalid";
+
+    private static string GetStatusCssClass(string? error)
+        => string.IsNullOrWhiteSpace(error) ? "sga-field-hint success" : "sga-field-hint error";
+
+    private static string GetStatusText(string? error, string successText)
+        => string.IsNullOrWhiteSpace(error) ? successText : error;
 
     private async Task LoadSummaryAsync()
     {
@@ -712,11 +960,15 @@
 
     private async Task CreateInstitutionAsync()
     {
-        using var busy = Ui.BeginBusy();
+        using var busy = Ui.BeginBusy("Guardando institucion...");
         message = null;
-        if (string.IsNullOrWhiteSpace(institutionCode) || string.IsNullOrWhiteSpace(institutionName))
+        ValidateInstitutionCode();
+        ValidateInstitutionName();
+
+        if (!CanCreateInstitution)
         {
-            message = "El codigo y nombre de institucion son obligatorios.";
+            message = institutionCodeError ?? institutionNameError ?? "Valida los campos obligatorios.";
+            Ui.ShowWarning("Formulario invalido", message);
             return;
         }
 
@@ -733,12 +985,14 @@
             Ui.ShowSuccess("Institucion creada", message);
             institutionCode = string.Empty;
             institutionName = string.Empty;
+            ValidateInstitutionCode();
+            ValidateInstitutionName();
+            showCreateInstitutionModal = false;
             await LoadInstitutionsAsync();
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            Ui.ShowError("No se pudo crear la institucion", ex.Message);
+            message = ErrorHandler.Handle(ex, "No se pudo crear la institucion");
         }
     }
 
@@ -959,11 +1213,20 @@
 
     private async Task UpdateSelectedInstitutionAsync()
     {
-        using var busy = Ui.BeginBusy();
+        using var busy = Ui.BeginBusy("Actualizando institucion...");
         message = null;
+        ValidateInstitutionEditCode();
+        ValidateInstitutionEditName();
         if (selectedInstitutionId <= 0)
         {
             message = "Selecciona una institucion para actualizar.";
+            return;
+        }
+
+        if (!CanUpdateInstitution)
+        {
+            message = institutionEditCodeError ?? institutionEditNameError ?? "Valida los campos antes de guardar.";
+            Ui.ShowWarning("Formulario invalido", message);
             return;
         }
 
@@ -980,12 +1243,12 @@
 
             message = "Institucion actualizada correctamente.";
             Ui.ShowSuccess("Institucion actualizada", message);
+            showEditInstitutionModal = false;
             await LoadInstitutionsAsync();
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            Ui.ShowError("No se pudo actualizar la institucion", ex.Message);
+            message = ErrorHandler.Handle(ex, "No se pudo actualizar la institucion");
         }
     }
 
@@ -1024,6 +1287,59 @@
             message = ex.Message;
             Ui.ShowError("No se pudo eliminar la institucion", ex.Message);
         }
+    }
+
+    private async Task LoadAdminLogsAsync()
+    {
+        using var busy = Ui.BeginBusy("Consultando logs...");
+
+        try
+        {
+            DateTimeOffset? start = logsStartDate.HasValue
+                ? new DateTimeOffset(logsStartDate.Value.Date, TimeSpan.Zero)
+                : null;
+
+            DateTimeOffset? end = logsEndDate.HasValue
+                ? new DateTimeOffset(logsEndDate.Value.Date.AddDays(1).AddSeconds(-1), TimeSpan.Zero)
+                : null;
+
+            var response = await ApiClient.GetAdminLogsAsync(
+                start,
+                end,
+                logsUserFilter,
+                logsErrorTypeFilter,
+                CancellationToken.None);
+
+            adminLogs = response?.OrderByDescending(x => x.Timestamp).ToList()
+                ?? new List<SGA.Web.Models.AdminErrorLogResponse>();
+
+            if (adminLogs.Count == 0)
+            {
+                Ui.ShowInfo("Logs", "No hay registros para los filtros seleccionados.");
+            }
+            else
+            {
+                Ui.ShowSuccess("Logs", $"Se cargaron {adminLogs.Count} eventos.");
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ErrorHandler.Handle(ex, "No se pudieron cargar los logs");
+            adminLogs = new List<SGA.Web.Models.AdminErrorLogResponse>();
+        }
+    }
+
+    private void OpenLogDetail(SGA.Web.Models.AdminErrorLogResponse entry)
+    {
+        selectedLogEntry = entry;
+        showLogDetailModal = true;
+    }
+
+    private Task CloseLogDetail()
+    {
+        showLogDetailModal = false;
+        selectedLogEntry = null;
+        return Task.CompletedTask;
     }
 
     private async Task LoadBusesAsync()

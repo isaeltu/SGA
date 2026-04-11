@@ -11,6 +11,8 @@ public enum PortalRole
 
 public sealed class PortalSessionService
 {
+    public event Action? Changed;
+
     public int PersonId { get; private set; }
     public int InstitutionId { get; private set; }
     public string FullName { get; private set; } = string.Empty;
@@ -34,6 +36,7 @@ public sealed class PortalSessionService
         IsDriver = profile.IsDriver;
         IsClientOrStudent = profile.IsClientOrStudent;
         IsMasterAdmin = profile.IsMasterAdmin;
+        Changed?.Invoke();
     }
 
     public void SignOut()
@@ -47,6 +50,33 @@ public sealed class PortalSessionService
         IsDriver = false;
         IsClientOrStudent = false;
         IsMasterAdmin = false;
+        Changed?.Invoke();
+    }
+
+    public PortalSessionSnapshot Export()
+        => new(
+            PersonId,
+            InstitutionId,
+            FullName,
+            Email,
+            IsAdmin,
+            IsOperator,
+            IsDriver,
+            IsClientOrStudent,
+            IsMasterAdmin);
+
+    public void Restore(PortalSessionSnapshot snapshot)
+    {
+        PersonId = snapshot.PersonId;
+        InstitutionId = snapshot.InstitutionId;
+        FullName = snapshot.FullName;
+        Email = snapshot.Email;
+        IsAdmin = snapshot.IsAdmin;
+        IsOperator = snapshot.IsOperator;
+        IsDriver = snapshot.IsDriver;
+        IsClientOrStudent = snapshot.IsClientOrStudent;
+        IsMasterAdmin = snapshot.IsMasterAdmin;
+        Changed?.Invoke();
     }
 
     public bool CanAccess(PortalRole role)
@@ -65,4 +95,15 @@ public sealed class PortalSessionService
             _ => false
         };
     }
+
+    public sealed record PortalSessionSnapshot(
+        int PersonId,
+        int InstitutionId,
+        string FullName,
+        string Email,
+        bool IsAdmin,
+        bool IsOperator,
+        bool IsDriver,
+        bool IsClientOrStudent,
+        bool IsMasterAdmin);
 }

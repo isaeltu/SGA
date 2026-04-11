@@ -4,6 +4,7 @@
 @inject SGA.Web.Services.PortalSessionService Session
 @inject NavigationManager Navigation
 @inject SGA.Web.Services.UiFeedbackService Ui
+@inject SGA.Web.Services.UiErrorHandler ErrorHandler
 
 <section class="sga-section">
     <div>
@@ -101,11 +102,12 @@
 
         <div class="sga-inline-actions operator-actions">
             <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
-            <input @bind="modifiedBy" class="sga-input" placeholder="Driver usuario" />
-            <button class="sga-btn alt" @onclick="StartTripAsync">Iniciar</button>
-            <button class="sga-btn alt" @onclick="CompleteTripAsync">Completar</button>
-            <button class="sga-btn danger" @onclick="CancelTripAsync">Cancelar</button>
+            <input @bind="modifiedBy" @bind:event="oninput" @bind:after="OnModifiedByInput" class="@GetInputCssClass(modifiedByError)" placeholder="Driver usuario" />
+            <button class="sga-btn alt" disabled="@(!CanOperateTrip)" @onclick="StartTripAsync">Iniciar</button>
+            <button class="sga-btn alt" disabled="@(!CanOperateTrip)" @onclick="CompleteTripAsync">Completar</button>
+            <button class="sga-btn danger" disabled="@(!CanOperateTrip)" @onclick="CancelTripAsync">Cancelar</button>
         </div>
+        <small class="@GetStatusCssClass(modifiedByError)">@GetStatusText(modifiedByError, "Usuario valido")</small>
     </article>
 
     @if (!string.IsNullOrWhiteSpace(message))
@@ -156,8 +158,10 @@
     private int selectedInstitutionId;
     private int selectedTripId;
     private string modifiedBy = "web-driver";
+    private string? modifiedByError;
     private string? message;
     private bool redirectToLogin;
+    private bool CanOperateTrip => selectedTripId > 0 && string.IsNullOrWhiteSpace(modifiedByError);
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,6 +177,7 @@
         {
             var response = await ApiClient.GetInstitutionsAsync(CancellationToken.None);
             institutions = response?.Where(i => i.IsActive).ToList() ?? new List<SGA.Web.Models.InstitutionResponse>();
+            ValidateModifiedBy();
         }
         catch (Exception ex)
         {
@@ -244,9 +249,13 @@
     {
         using var busy = Ui.BeginBusy();
         message = null;
-        if (selectedTripId <= 0)
+        ValidateModifiedBy();
+        if (!CanOperateTrip)
         {
-            message = "Selecciona un viaje valido.";
+            message = selectedTripId <= 0
+                ? "Selecciona un viaje valido."
+                : modifiedByError ?? "Completa el usuario responsable.";
+            Ui.ShowWarning("Accion invalida", message);
             return;
         }
 
@@ -259,8 +268,26 @@
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            Ui.ShowError($"No se pudo {toastTitle.ToLowerInvariant()}", ex.Message);
+            message = ErrorHandler.Handle(ex, $"No se pudo {toastTitle.ToLowerInvariant()}");
         }
     }
+
+    private void OnModifiedByInput()
+    {
+        ValidateModifiedBy();
+    }
+
+    private void ValidateModifiedBy()
+    {
+        modifiedByError = string.IsNullOrWhiteSpace(modifiedBy) ? "Este campo es obligatorio." : null;
+    }
+
+    private static string GetInputCssClass(string? error)
+        => string.IsNullOrWhiteSpace(error) ? "sga-input sga-input-valid" : "sga-input sga-input-invalid";
+
+    private static string GetStatusCssClass(string? error)
+        => string.IsNullOrWhiteSpace(error) ? "sga-field-hint success" : "sga-field-hint error";
+
+    private static string GetStatusText(string? error, string successText)
+        => string.IsNullOrWhiteSpace(error) ? successText : error;
 }

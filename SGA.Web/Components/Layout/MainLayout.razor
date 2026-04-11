@@ -1,6 +1,10 @@
 ﻿@inherits LayoutComponentBase
+@implements IAsyncDisposable
 @inject NavigationManager Navigation
 @inject SGA.Web.Services.PortalSessionService Session
+@inject SGA.Web.Services.PortalSessionStorageService SessionStorage
+@inject SGA.Web.Services.UiFeedbackService Ui
+@inject IJSRuntime JS
 
 <div class="sga-layout">
     <aside class="sga-sidebar" id="sga-sidebar">
@@ -39,9 +43,16 @@
                 </summary>
                 <div class="sga-profile-menu">
                     <p>@(string.IsNullOrWhiteSpace(Session.Email) ? "Sin sesion" : Session.Email)</p>
+                    @if (ShowCountdown)
+                    {
+                        <div class="sga-session-countdown" role="status" aria-live="polite">
+                            Sesion expira en @FormatCountdown(RemainingSeconds)
+                            <button type="button" class="sga-btn alt" @onclick="RenewSession">Renovar sesion</button>
+                        </div>
+                    }
                     @if (Session.IsLoggedIn)
                     {
-                        <button type="button" class="sga-btn ghost" @onclick="SignOut">Cerrar sesion</button>
+                        <button type="button" class="sga-btn ghost" @onclick="OpenSignOutModal">Cerrar sesion</button>
                     }
                 </div>
             </details>
@@ -53,6 +64,34 @@
     </main>
 </div>
 
+@if (showInactivityModal)
+{
+    <div class="sga-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sga-timeout-title">
+        <div class="sga-modal-card">
+            <h3 id="sga-timeout-title">Sesion por expirar</h3>
+            <p>Tu sesion expirara en @FormatCountdown(RemainingSeconds) por inactividad.</p>
+            <div class="sga-modal-actions">
+                <button type="button" class="sga-btn" @onclick="RenewSession">Renovar sesion</button>
+                <button type="button" class="sga-btn ghost" @onclick="ConfirmSignOutAsync">Cerrar sesion ahora</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showSignOutModal)
+{
+    <div class="sga-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sga-signout-title">
+        <div class="sga-modal-card">
+            <h3 id="sga-signout-title">Confirmar cierre de sesion</h3>
+            <p>Se cerrara tu sesion actual y volveras a la pantalla de acceso.</p>
+            <div class="sga-modal-actions">
+                <button type="button" class="sga-btn ghost" @onclick="CloseSignOutModal">Cancelar</button>
+                <button type="button" class="sga-btn danger" @onclick="ConfirmSignOutAsync">Cerrar sesion</button>
+            </div>
+        </div>
+    </div>
+}
+
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
@@ -60,7 +99,54 @@
 </div>
 
 @code {
+    private static readonly TimeSpan IdleTimeout = TimeSpan.FromHours(1);
+    private static readonly TimeSpan WarningWindow = TimeSpan.FromMinutes(10);
+
     private sealed record BreadcrumbItem(string Label, string Href, bool IsActive);
+
+    private DotNetObjectReference<MainLayout>? objectReference;
+    private IDisposable? locationRegistration;
+    private PeriodicTimer? sessionTimer;
+    private CancellationTokenSource? timerCts;
+    private DateTimeOffset lastActivityUtc = DateTimeOffset.UtcNow;
+    private bool showSignOutModal;
+    private bool showInactivityModal;
+    private bool isSigningOut;
+    private bool isSessionRestored;
+    private bool jsReady;
+
+    private int RemainingSeconds { get; set; }
+    private bool ShowCountdown => Session.IsLoggedIn && RemainingSeconds > 0 && RemainingSeconds <= (int)WarningWindow.TotalSeconds;
+
+    protected override void OnInitialized()
+    {
+        Session.Changed += HandleSessionChanged;
+        locationRegistration = Navigation.RegisterLocationChangingHandler(HandleLocationChangingAsync);
+        RemainingSeconds = (int)IdleTimeout.TotalSeconds;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        jsReady = true;
+
+        objectReference = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("sgaUi.registerActivityTracker", objectReference);
+
+        var snapshot = await SessionStorage.LoadAsync();
+        if (snapshot is not null && !Session.IsLoggedIn)
+        {
+            isSessionRestored = true;
+            Session.Restore(snapshot);
+            Ui.ShowInfo("Sesion restaurada", "Continuas con la sesion previa de este navegador.");
+        }
+
+        await StartSessionTimerAsync();
+    }
 
     private IReadOnlyList<BreadcrumbItem> BuildBreadcrumbs()
     {
@@ -99,9 +185,181 @@
             ? "?"
             : Session.FullName.Trim()[0].ToString().ToUpperInvariant();
 
-    private void SignOut()
+    [JSInvokable]
+    public Task NotifyActivity()
     {
+        lastActivityUtc = DateTimeOffset.UtcNow;
+        if (showInactivityModal)
+        {
+            showInactivityModal = false;
+            Ui.ShowInfo("Sesion renovada", "Actividad detectada. La sesion continua activa.");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void OpenSignOutModal() => showSignOutModal = true;
+
+    private void CloseSignOutModal() => showSignOutModal = false;
+
+    private void RenewSession()
+    {
+        lastActivityUtc = DateTimeOffset.UtcNow;
+        showInactivityModal = false;
+    }
+
+    private async Task ConfirmSignOutAsync()
+    {
+        if (isSigningOut)
+        {
+            return;
+        }
+
+        isSigningOut = true;
+        showSignOutModal = false;
+        showInactivityModal = false;
         Session.SignOut();
+        await SessionStorage.ClearAsync();
         Navigation.NavigateTo("/acceso", forceLoad: false);
+        isSigningOut = false;
+    }
+
+    private async ValueTask HandleLocationChangingAsync(LocationChangingContext context)
+    {
+        if (!Session.IsLoggedIn || isSigningOut)
+        {
+            return;
+        }
+
+        var current = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+        var next = Navigation.ToBaseRelativePath(context.TargetLocation).Trim('/');
+
+        if (!current.StartsWith("portal/", StringComparison.OrdinalIgnoreCase) ||
+            next.StartsWith("portal/", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(current, next, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var shouldLeave = await JS.InvokeAsync<bool>("sgaUi.confirmAction", "Desea realmente salir? Se perderan cambios sin guardar.");
+        if (!shouldLeave)
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    private async Task StartSessionTimerAsync()
+    {
+        timerCts?.Cancel();
+        timerCts?.Dispose();
+        timerCts = new CancellationTokenSource();
+
+        sessionTimer?.Dispose();
+        sessionTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        _ = RunSessionTimerAsync(timerCts.Token);
+        await Task.CompletedTask;
+    }
+
+    private async Task RunSessionTimerAsync(CancellationToken cancellationToken)
+    {
+        if (sessionTimer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            while (await sessionTimer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(async () => await EvaluateSessionAsync());
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task EvaluateSessionAsync()
+    {
+        if (!Session.IsLoggedIn)
+        {
+            RemainingSeconds = (int)IdleTimeout.TotalSeconds;
+            showInactivityModal = false;
+            return;
+        }
+
+        var elapsed = DateTimeOffset.UtcNow - lastActivityUtc;
+        var remaining = IdleTimeout - elapsed;
+        RemainingSeconds = Math.Max((int)remaining.TotalSeconds, 0);
+
+        if (remaining <= TimeSpan.Zero)
+        {
+            Ui.ShowWarning("Sesion cerrada", "Tu sesion expiro por inactividad.");
+            await ConfirmSignOutAsync();
+            return;
+        }
+
+        if (remaining <= WarningWindow && !showInactivityModal)
+        {
+            showInactivityModal = true;
+            Ui.ShowWarning("Inactividad detectada", "Tu sesion expirara en 10 minutos si no registras actividad.");
+        }
+    }
+
+    private void HandleSessionChanged()
+        => _ = InvokeAsync(HandleSessionChangedAsync);
+
+    private async Task HandleSessionChangedAsync()
+    {
+        lastActivityUtc = DateTimeOffset.UtcNow;
+        showInactivityModal = false;
+
+        if (!jsReady)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (Session.IsLoggedIn)
+        {
+            await SessionStorage.SaveAsync(Session.Export());
+        }
+        else if (!isSessionRestored)
+        {
+            await SessionStorage.ClearAsync();
+        }
+
+        isSessionRestored = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string FormatCountdown(int remainingSeconds)
+    {
+        var safe = Math.Max(remainingSeconds, 0);
+        var minutes = safe / 60;
+        var seconds = safe % 60;
+        return $"{minutes:00}:{seconds:00}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Session.Changed -= HandleSessionChanged;
+        locationRegistration?.Dispose();
+        timerCts?.Cancel();
+        sessionTimer?.Dispose();
+        timerCts?.Dispose();
+        objectReference?.Dispose();
+
+        if (jsReady)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("sgaUi.unregisterActivityTracker");
+            }
+            catch
+            {
+            }
+        }
     }
 }

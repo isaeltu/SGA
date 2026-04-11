@@ -4,6 +4,7 @@
 @inject SGA.Web.Services.PortalSessionService Session
 @inject NavigationManager Navigation
 @inject SGA.Web.Services.UiFeedbackService Ui
+@inject SGA.Web.Services.UiErrorHandler ErrorHandler
 
 <section class="sga-section">
     <h1>Validar acceso por rol</h1>
@@ -21,20 +22,28 @@
 
         <div class="sga-field">
             <label>Correo del usuario</label>
-            <input class="sga-input" @bind="email" type="email" placeholder="usuario@correo.com" />
+            <div class="sga-input-status-wrap">
+                <input class="@GetInputCssClass(emailError)" @bind="email" @bind:event="oninput" @bind:after="OnEmailInput" type="email" placeholder="usuario@correo.com" />
+                <span class="sga-input-status-icon">@GetStatusIcon(emailError, email)</span>
+            </div>
+            <small class="@GetStatusCssClass(emailError)">@GetStatusText(emailError, "Email valido")</small>
         </div>
 
         @if (showOtpStep)
         {
             <div class="sga-field">
                 <label>Codigo OTP (6 digitos)</label>
-                <input class="sga-input" @bind="otpCode" maxlength="6" placeholder="123456" />
+                <div class="sga-input-status-wrap">
+                    <input class="@GetInputCssClass(otpError)" @bind="otpCode" @bind:event="oninput" @bind:after="OnOtpInput" maxlength="6" placeholder="123456" />
+                    <span class="sga-input-status-icon">@GetStatusIcon(otpError, otpCode)</span>
+                </div>
+                <small class="@GetStatusCssClass(otpError)">@GetStatusText(otpError, "Codigo OTP valido")</small>
             </div>
-            <button class="sga-btn alt" @onclick="VerifyOtpAsync">Validar codigo</button>
+            <button class="sga-btn alt" disabled="@(!CanVerifyOtp)" @onclick="VerifyOtpAsync">Validar codigo</button>
         }
         else
         {
-            <button class="sga-btn" @onclick="RequestOtpAsync">Enviar codigo OTP</button>
+            <button class="sga-btn" disabled="@(!CanRequestOtp)" @onclick="RequestOtpAsync">Enviar codigo OTP</button>
         }
     </div>
 
@@ -52,20 +61,29 @@
     private string otpCode = string.Empty;
     private bool showOtpStep;
     private string? message;
+    private string? emailError;
+    private string? otpError;
+
+    private bool CanRequestOtp => string.IsNullOrWhiteSpace(emailError) && !string.IsNullOrWhiteSpace(email);
+    private bool CanVerifyOtp => CanRequestOtp && string.IsNullOrWhiteSpace(otpError) && !string.IsNullOrWhiteSpace(otpCode);
 
     protected override void OnInitialized()
     {
         portal = NormalizePortal(portal);
+        ValidateEmail();
+        ValidateOtp();
     }
 
     private async Task RequestOtpAsync()
     {
-        using var busy = Ui.BeginBusy();
+        using var busy = Ui.BeginBusy("Enviando codigo OTP...");
         message = null;
+        ValidateEmail();
 
-        if (string.IsNullOrWhiteSpace(email))
+        if (!CanRequestOtp)
         {
-            message = "El correo es obligatorio.";
+            message = emailError ?? "El correo es obligatorio.";
+            Ui.ShowWarning("Correo invalido", message);
             return;
         }
 
@@ -80,19 +98,21 @@
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            Ui.ShowError("No se pudo solicitar el OTP", ex.Message);
+            message = ErrorHandler.Handle(ex, "No se pudo solicitar el OTP");
         }
     }
 
     private async Task VerifyOtpAsync()
     {
-        using var busy = Ui.BeginBusy();
+        using var busy = Ui.BeginBusy("Validando codigo OTP...");
         message = null;
+        ValidateEmail();
+        ValidateOtp();
 
-        if (string.IsNullOrWhiteSpace(otpCode) || otpCode.Trim().Length != 6)
+        if (!CanVerifyOtp)
         {
-            message = "Ingresa un codigo OTP valido de 6 digitos.";
+            message = otpError ?? "Ingresa un codigo OTP valido de 6 digitos.";
+            Ui.ShowWarning("Codigo OTP invalido", message);
             return;
         }
 
@@ -137,10 +157,76 @@
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            Ui.ShowError("No se pudo validar el OTP", ex.Message);
+            message = ErrorHandler.Handle(ex, "No se pudo validar el OTP");
         }
     }
+
+    private void ValidateEmail()
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            emailError = "Este campo es obligatorio.";
+            return;
+        }
+
+        emailError = IsEmailFormatValid(email) ? null : "Formato de email invalido.";
+    }
+
+    private void ValidateOtp()
+    {
+        if (!showOtpStep && string.IsNullOrWhiteSpace(otpCode))
+        {
+            otpError = null;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(otpCode))
+        {
+            otpError = "Este campo es obligatorio.";
+            return;
+        }
+
+        var normalized = otpCode.Trim();
+        otpError = normalized.Length == 6 && normalized.All(char.IsDigit)
+            ? null
+            : "Ingresa 6 digitos numericos.";
+    }
+
+    private void OnEmailInput()
+    {
+        ValidateEmail();
+    }
+
+    private void OnOtpInput()
+    {
+        ValidateOtp();
+    }
+
+    private static bool IsEmailFormatValid(string value)
+    {
+        var at = value.IndexOf('@');
+        var dot = value.LastIndexOf('.');
+        return at > 0 && dot > at + 1 && dot < value.Length - 1;
+    }
+
+    private static string GetInputCssClass(string? error)
+        => string.IsNullOrWhiteSpace(error) ? "sga-input sga-input-valid" : "sga-input sga-input-invalid";
+
+    private static string GetStatusCssClass(string? error)
+        => string.IsNullOrWhiteSpace(error) ? "sga-field-hint success" : "sga-field-hint error";
+
+    private static string GetStatusIcon(string? error, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "⚠";
+        }
+
+        return string.IsNullOrWhiteSpace(error) ? "✓" : "✗";
+    }
+
+    private static string GetStatusText(string? error, string successText)
+        => string.IsNullOrWhiteSpace(error) ? successText : error;
 
     private static string NormalizePortal(string? value)
     {
