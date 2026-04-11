@@ -443,9 +443,9 @@
                 <label>Creado por</label>
                 <input @bind="createdBy" class="sga-input" />
             </div>
-
+         
             <button class="sga-btn" style="grid-column: 1 / -1;" disabled="@(!CanCreateTrip)" @onclick="CreateTripAsync">Registrar viaje</button>
-        </div>
+        
 
     <div class="sga-inline-actions operator-actions" style="margin-top:1rem;">
         <input @bind="selectedTripId" type="number" class="sga-input" placeholder="Trip ID" />
